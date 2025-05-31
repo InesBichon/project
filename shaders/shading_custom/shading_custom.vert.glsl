@@ -7,7 +7,6 @@ layout (location = 0) in vec3 vertex_position; // vertex position in local space
 layout (location = 1) in vec3 vertex_normal;   // vertex normal in local space   (nx,ny,nz)
 layout (location = 2) in vec3 vertex_color;    // vertex color      (r,g,b)
 layout (location = 3) in vec2 vertex_uv;       // vertex uv-texture (u,v)
-layout (location = 4) in vec3 instance_pos;
 
 // Output variables sent to the fragment shader
 out struct fragment_data
@@ -27,8 +26,9 @@ uniform mat4 projection; // Projection (perspective or orthogonal) matrix of the
 
 void main()
 {
+
 	// The position of the vertex in the world space
-	vec4 position = model * vec4(vertex_position, 1.0) + vec4(instance_pos, 0.0);
+	vec4 position = model * vec4(vertex_position, 1.0);
 
 	// The normal of the vertex in the world space
 	mat4 modelNormal = transpose(inverse(model));

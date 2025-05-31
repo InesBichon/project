@@ -1,124 +1,157 @@
 #include "scene.hpp"
 
+#include "terrain.hpp"
+#include "tree.hpp"
 
 using namespace cgp;
 
-void deform_terrain(mesh& m)
-{
-	// Set the terrain to have a gaussian shape
-	for (int k = 0; k < m.position.size(); ++k)
-	{
-		vec3& p = m.position[k];
-		float d2 = p.x*p.x + p.y * p.y;
-		float z = exp(-d2 / 4)-1;
 
-		z = z + 0.05f*noise_perlin({ p.x,p.y });
 
-		p = { p.x, p.y, z };
-	}
 
-	m.normal_update();
-}
-
-// This function is called only once at the beginning of the program
-// This function can contain any complex operation that can be pre-computed once
 void scene_structure::initialize()
 {
-	std::cout << "Start function scene_structure::initialize()" << std::endl;
+	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
+	camera_control.set_rotation_axis_z();
+	camera_control.look_at({ 15.0f,6.0f,6.0f }, {0,0,0});
+	
 
-	// Set the behavior of the camera and its initial position
-	// ********************************************** //
-	camera_control.initialize(inputs, window); 
-	camera_control.set_rotation_axis_z(); // camera rotates around z-axis
-	//   look_at(camera_position, targeted_point, up_direction)
-	camera_control.look_at(
-		{ 5.0f, -4.0f, 3.5f } /* position of the camera in the 3D scene */,
-		{0,0,0} /* targeted point in 3D scene */,
-		{0,0,1} /* direction of the "up" vector */);
-
-	// Display general information
+	// General information
 	display_info();
-	// Create the global (x,y,z) frame
+
 	global_frame.initialize_data_on_gpu(mesh_primitive_frame());
+	
+	shader_custom.load(
+		project::path + "shaders/shading_custom/shading_custom.vert.glsl",
+		project::path + "shaders/shading_custom/shading_custom.frag.glsl");
 
+	int N_terrain_samples = 300, n_col = 50;
+	float terrain_length = 50;
 
-	// Create the shapes seen in the 3D scene
-	// ********************************************** //
+	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
 
-	float L = 5.0f;
-	mesh terrain_mesh = mesh_primitive_grid({ -L,-L,0 }, { L,-L,0 }, { L,L,0 }, { -L,L,0 }, 100, 100);
-	deform_terrain(terrain_mesh);
-	terrain.initialize_data_on_gpu(terrain_mesh);
-	terrain.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/sand.jpg");
+	terrain_mesh.initialize_data_on_gpu(terrain.mesh);
+	// terrain_mesh.material.color = {0.1f,0.1f,0.1f};
+	// terrain_mesh.material.phong.specular = 0.0f; // non-specular terrain material
+	terrain_mesh.shader = shader_custom;
+	terrain_mesh.material.color = {1, 1, 1};
 
-	float sea_w = 8.0;
-	float sea_z = -0.8f;
-	water.initialize_data_on_gpu(mesh_primitive_grid({ -sea_w,-sea_w,sea_z }, { sea_w,-sea_w,sea_z }, { sea_w,sea_w,sea_z }, { -sea_w,sea_w,sea_z }));
-	water.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/sea.png");
+	spheres.resize(n_lights);
+	light_colors.resize(n_lights);
 
-	tree.initialize_data_on_gpu(mesh_load_file_obj(project::path + "assets/palm_tree/palm_tree.obj"));
-	tree.model.rotation = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2.0f);
-	tree.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/palm_tree/palm_tree.jpg", GL_REPEAT, GL_REPEAT);
+	for (int i = 0; i < n_lights; i++)
+	{
+		light_colors[i] = {i % 3 == 0, i % 3 == 1, i % 3 == 2};
+		mesh sphere_mesh = mesh_primitive_sphere();
+		spheres[i].initialize_data_on_gpu(sphere_mesh);
+		spheres[i].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
+		// spheres[i].model.translation = { 1,2,0 }; // coordinates are offseted by {1,2,0} in the shader
+		// spheres[i].material.color = light_colors[i]; // sphere will appear red (r,g,b components in [0,1])
+		spheres[i].shader = shader_custom;
+	}
+	
+	cgp_warning::max_warning = 0;
+	
+	// terrain_mesh.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/texture_grass.jpg", GL_REPEAT, GL_REPEAT);
 
-	cube1.initialize_data_on_gpu(mesh_primitive_cube({ 0,0,0 }, 0.5f));
-	cube1.model.rotation = rotation_transform::from_axis_angle({ -1,1,0 }, Pi / 7.0f);
-	cube1.model.translation = { 1.0f,1.0f,-0.1f };
-	cube1.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/wood.jpg");
+	// mesh const tree_mesh = create_tree();
+	// tree.initialize_data_on_gpu(tree_mesh);
 
-	cube2 = cube1;
+	// tree_position = terrain.generate_positions_on_terrain(N_trees);
 
+	// tree.initialize_supplementary_data_on_gpu(cgp::numarray<vec3>(tree_position), 4, 1);
 }
 
 
-// This function is called permanently at every new frame
-// Note that you should avoid having costly computation and large allocation defined there. This function is mostly used to call the draw() functions on pre-existing data.
 void scene_structure::display_frame()
 {
-
-	// Set the light to the current position of the camera
-	environment.light = camera_control.camera_model.position();
-
 	// Update time
 	timer.update();
 
-	// conditional display of the global frame (set via the GUI)
-	if (gui.display_frame)
-		draw(global_frame, environment);
+	float freq = 0.5f;
+
+	// Set the light to the current position of the camera
+	environment.light = camera_control.camera_model.position();
+	glUseProgram(shader_custom.id);
+
+	environment.uniform_generic.uniform_float["ambiant"] = 0.3f;
+	environment.uniform_generic.uniform_float["diffuse"] = 0.5f;
+	environment.uniform_generic.uniform_float["specular"] = 0.9f;
+	environment.uniform_generic.uniform_float["specular_exp"] = 128;
+	environment.uniform_generic.uniform_float["dl_max"] = 100;
+
+	environment.uniform_generic.uniform_int["light_n"] = n_lights;
+
+	GLint pos_loc = shader_custom.query_uniform_location("light_positions");
+	GLint col_loc = shader_custom.query_uniform_location("light_colors");
 	
+	for (int i = 0; i < n_lights; i++)
+	{
+		cgp::vec3 color = light_colors[i];
+		cgp::vec3 pos = {i*2, i*2, 20};
+		pos.x += 2 * cos(freq * timer.t * (i+1));
+		pos.y += 2 * sin(freq * timer.t * 2 * (i+1));
 
-	// Draw all the shapes
-	draw(terrain, environment);
-	draw(water, environment);
-	draw(tree, environment);
-	draw(cube1, environment);
+		glUniform3f(pos_loc + i, pos.x, pos.y, pos.z);
+		glUniform3f(col_loc + i, color.x, color.y, color.z);
 
-	// Animate the second cube in the water
-	cube2.model.translation = { -1.0f, 6.0f+0.1*sin(0.5f*timer.t), -0.8f + 0.1f * cos(0.5f * timer.t)};
-	cube2.model.rotation = rotation_transform::from_axis_angle({1,-0.2,0},Pi/12.0f*sin(0.5f*timer.t));
-	draw(cube2, environment);
+		spheres[i].model.translation = pos;
+		// spheres[i].material.color = color * 0.8f;
 
-	if (gui.display_wireframe) {
-		draw_wireframe(terrain, environment);
-		draw_wireframe(water, environment);
-		draw_wireframe(tree, environment);
-		draw_wireframe(cube1, environment);
-		draw_wireframe(cube2, environment);
+		// spheres[i].material.phong.ambient = 1;
+		// spheres[i].material.phong.diffuse = 0;
+		// spheres[i].material.phong.specular = 0;
 	}
+
+	// environment.background_color = gui;
+
+	// if (gui.display_frame)
+	// 	draw(global_frame, environment);
+
+	draw(terrain_mesh, environment);
+		
+	for (mesh_drawable& sphere: spheres)
+		draw(sphere, environment);
 	
+	// draw(tree, environment, N_trees);
 
-
-
-
-
-
+	if (gui.display_wireframe)
+	{
+		draw_wireframe(terrain_mesh, environment);
+		
+		// for (vec3 pos: tree_position)
+		// {
+		// 	tree.model.translation = pos;
+		// 	tree.model.translation.z -= 0.1f;
+		// 	draw_wireframe(tree, environment);
+		// }
+	}
 
 }
+
 
 void scene_structure::display_gui()
 {
 	ImGui::Checkbox("Frame", &gui.display_frame);
 	ImGui::Checkbox("Wireframe", &gui.display_wireframe);
 
+	bool update = false;
+	update |= ImGui::SliderFloat("Persistance", &terrain.persistency, 0.1f, 0.6f);
+	update |= ImGui::SliderFloat("Frequency gain", &terrain.frequency_gain, 1.5f, 2.5f);
+	update |= ImGui::SliderInt("Octave", &terrain.octave, 1, 8);
+	update |= ImGui::SliderFloat("Height", &terrain.height, 0.f, 10.f);
+
+	if (update)// if any slider has been changed - then update the terrain
+	{
+		terrain.update_positions();	// Update step: Allows to update a mesh_drawable without creating a new one
+		terrain_mesh.vbo_position.update(terrain.mesh.position);
+		terrain_mesh.vbo_normal.update(terrain.mesh.normal);
+		terrain_mesh.vbo_color.update(terrain.mesh.color);
+		
+		// for (vec3& pos: tree_position)
+		// 	pos.z = terrain.evaluate_terrain_height(pos.x, pos.y);
+		// tree.supplementary_vbo[0].clear();
+		// tree.initialize_supplementary_data_on_gpu(cgp::numarray<vec3>(tree_position), 4, 1);
+	}
 }
 
 void scene_structure::mouse_move_event()
@@ -139,17 +172,10 @@ void scene_structure::idle_frame()
 	camera_control.idle_frame(environment.camera_view);
 }
 
-
 void scene_structure::display_info()
 {
 	std::cout << "\nCAMERA CONTROL:" << std::endl;
 	std::cout << "-----------------------------------------------" << std::endl;
 	std::cout << camera_control.doc_usage() << std::endl;
-	std::cout << "-----------------------------------------------\n" << std::endl;
-
-
-	std::cout << "\nSCENE INFO:" << std::endl;
-	std::cout << "-----------------------------------------------" << std::endl;
-	std::cout << "Display here the information you would like to appear at the start of the program on the command line (file scene.cpp, function display_info())." << std::endl;
 	std::cout << "-----------------------------------------------\n" << std::endl;
 }

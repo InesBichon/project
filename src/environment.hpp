@@ -14,7 +14,7 @@ using namespace cgp;
 struct environment_structure : environment_generic_structure
 {
 	// Color of the background of the scene
-	vec3 background_color = {1,1,1}; // Used in the main program
+	vec3 background_color = {0.5,0.5,0.8}; // Used in the main program
 
 	// The position/orientation of a camera that can rotates freely around a specific position
 	mat4 camera_view;
