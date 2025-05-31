@@ -50,6 +50,13 @@ void scene_structure::initialize()
 		// spheres[i].shader = shader_custom;
 	}
 	
+	mesh ball_mesh = mesh_primitive_sphere();
+	ball.initialize_data_on_gpu(ball_mesh);
+	ball.model.scaling = 0.2;
+	// ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/lampe.png");
+
+
+
 	cgp_warning::max_warning = 0;
 	
 	// terrain_mesh.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/texture_grass.jpg", GL_REPEAT, GL_REPEAT);
@@ -115,6 +122,7 @@ void scene_structure::display_frame()
 		draw(sphere, environment);
 	
 	// draw(tree, environment, N_trees);
+	draw(ball, environment);
 
 	if (gui.display_wireframe)
 	{

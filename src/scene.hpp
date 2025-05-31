@@ -53,6 +53,8 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// int N_trees = 100;
 	// std::vector<cgp::vec3> tree_position;
 
+	mesh_drawable ball;
+	
 
 	// ****************************** //
 	// Functions

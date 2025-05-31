@@ -8,7 +8,10 @@
 		},
 		{
 			"name": "cgp",
-			"path": "../../cgp/library/",
+			"path": "../../cgp/library/"
+		},
+		{
+			"path": "../04b_textures"
 		}
 	],
 
