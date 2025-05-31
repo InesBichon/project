@@ -53,7 +53,7 @@ void scene_structure::initialize()
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
 	ball.model.scaling = 0.2;
-	// ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/lampe.png");
+	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
 
 
 
