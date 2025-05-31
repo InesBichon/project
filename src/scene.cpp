@@ -1,7 +1,5 @@
 #include "scene.hpp"
-
 #include "terrain.hpp"
-#include "tree.hpp"
 
 using namespace cgp;
 
