@@ -1,6 +1,6 @@
 #version 330 core
 
-#define MAX_LIGHTS 5
+#define MAX_LIGHTS 15
 
 // Inputs coming from the vertex shader
 in struct fragment_data
