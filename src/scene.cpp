@@ -5,8 +5,10 @@
 
 using namespace cgp;
 
-
-
+cgp::vec3 get_random_color()
+{
+	return {rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0)};
+}
 
 void scene_structure::initialize()
 {
@@ -41,12 +43,13 @@ void scene_structure::initialize()
 	for (int i = 0; i < n_lights; i++)
 	{
 		light_colors[i] = {i % 3 == 0, i % 3 == 1, i % 3 == 2};
+		// std::cout << light_colors[i] << '\n';
 		mesh sphere_mesh = mesh_primitive_sphere();
 		spheres[i].initialize_data_on_gpu(sphere_mesh);
 		spheres[i].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
 		// spheres[i].model.translation = { 1,2,0 }; // coordinates are offseted by {1,2,0} in the shader
-		// spheres[i].material.color = light_colors[i]; // sphere will appear red (r,g,b components in [0,1])
-		spheres[i].shader = shader_custom;
+		spheres[i].material.color = light_colors[i]; // sphere will appear red (r,g,b components in [0,1])
+		// spheres[i].shader = shader_custom;
 	}
 	
 	cgp_warning::max_warning = 0;
@@ -73,10 +76,10 @@ void scene_structure::display_frame()
 	environment.light = camera_control.camera_model.position();
 	glUseProgram(shader_custom.id);
 
-	environment.uniform_generic.uniform_float["ambiant"] = 0.3f;
-	environment.uniform_generic.uniform_float["diffuse"] = 0.5f;
-	environment.uniform_generic.uniform_float["specular"] = 0.9f;
-	environment.uniform_generic.uniform_float["specular_exp"] = 128;
+	environment.uniform_generic.uniform_float["ambiant"] = 0.2f / n_lights;
+	environment.uniform_generic.uniform_float["diffuse"] = 5.f / n_lights;
+	environment.uniform_generic.uniform_float["specular"] = 35.f / n_lights;
+	environment.uniform_generic.uniform_float["specular_exp"] = 100;
 	environment.uniform_generic.uniform_float["dl_max"] = 100;
 
 	environment.uniform_generic.uniform_int["light_n"] = n_lights;
@@ -87,9 +90,10 @@ void scene_structure::display_frame()
 	for (int i = 0; i < n_lights; i++)
 	{
 		cgp::vec3 color = light_colors[i];
-		cgp::vec3 pos = {i*2, i*2, 20};
-		pos.x += 2 * cos(freq * timer.t * (i+1));
-		pos.y += 2 * sin(freq * timer.t * 2 * (i+1));
+		cgp::vec3 pos = {10 * cos(10. * i), 10 * sin(10. * i), 0};
+		pos.z = terrain.evaluate_terrain_height(pos.x, pos.y) + 3;
+		pos.x += 2 * cos(freq * timer.t * (i % 2 + 1));
+		pos.y += 2 * sin(freq * timer.t * (i % 2 + 1));
 
 		glUniform3f(pos_loc + i, pos.x, pos.y, pos.z);
 		glUniform3f(col_loc + i, color.x, color.y, color.z);

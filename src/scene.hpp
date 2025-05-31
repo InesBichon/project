@@ -42,7 +42,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	cgp::mesh_drawable terrain_mesh;
 	timer_basic timer;
 
-	int n_lights = 3;
+	int n_lights = 5;
 
 	std::vector<mesh_drawable> spheres;
 	mesh_drawable sphere_light;
