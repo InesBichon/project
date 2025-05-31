@@ -45,8 +45,8 @@ void scene_structure::initialize()
 		mesh sphere_mesh = mesh_primitive_sphere();
 		spheres[i].initialize_data_on_gpu(sphere_mesh);
 		spheres[i].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
-		// spheres[i].model.translation = { 1,2,0 }; // coordinates are offseted by {1,2,0} in the shader
-		spheres[i].material.color = light_colors[i]; // sphere will appear red (r,g,b components in [0,1])
+		// spheres[i].texture = 
+		spheres[i].material.color = light_colors[i];
 		// spheres[i].shader = shader_custom;
 	}
 	
