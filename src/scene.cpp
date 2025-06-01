@@ -54,13 +54,14 @@ void scene_structure::initialize()
 	// ******************************************* //
 
 
+
+	ball_position = {10.f, 10.f, 10.f};
+	ball_velocity = {0.f, 0.f, 0.f};
+
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
-	ball.model.scaling = 0.2;
+	// ball.model.scaling = 0.2;
 	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
-
-	
-
 
 	cgp_warning::max_warning = 0;
 	
@@ -82,11 +83,17 @@ void scene_structure::simulation_step(float dt)
 	vec3 g = { 0,0,-9.81f }; // gravity
 
 
-	ball_weight = g;
+	ball_weight = m * g * 0.0001;
+	ball_force = ball_weight;
 
-	ball_velocity = ball_velocity + dt * ball_acceleration / m;
+	ball_velocity = ball_velocity + dt * ball_force / m;
 	ball_position = ball_position + dt * ball_velocity;
 	
+	if (ball_position.z < terrain.evaluate_terrain_height(ball_position.x, ball_position.y))
+	{
+		// ball_velocity = reflect;
+	}
+
 
 
 }
@@ -147,7 +154,10 @@ void scene_structure::display_frame()
 	for (mesh_drawable& sphere: spheres)
 		draw(sphere, environment);
 	
+	simulation_step(timer.scale * 0.1f);
 	// draw(tree, environment, N_trees);
+
+	ball.model.translation = ball_position;
 	draw(ball, environment);
 
 	if (gui.display_wireframe)

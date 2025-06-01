@@ -60,7 +60,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// Ball parameters
 	vec3 ball_position;
 	vec3 ball_velocity;
-	vec3 ball_acceleration;
+	vec3 ball_force;
 	vec3 ball_weight;
 
 	//0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.
@@ -70,14 +70,12 @@ struct scene_structure : cgp::scene_inputs_generic {
 
 
 
-
-
 	// ****************************** //
 	// Functions
 	// ****************************** //
 
 	void simulation_step(float dt);
-	
+
 	void initialize();    // Standard initialization to be called before the animation loop
 	void display_frame(); // The frame display to be called within the animation loop
 	void display_gui();   // The display of the GUI, also called within the animation loop
