@@ -8,6 +8,15 @@ cgp::vec3 get_random_color()
 	return {rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0)};
 }
 
+cgp::vec3 scene_structure::reflect(cgp::vec3 v, cgp::vec3 n)
+{
+	cgp::vec3 new_v;
+	new_v = 2 * n * dot(n, v) - v;
+	return -new_v;
+
+}
+
+
 
 void scene_structure::initialize()
 {
@@ -100,7 +109,8 @@ void scene_structure::simulation_step(float dt)
 	
 	if (ball_position.z < terrain.evaluate_terrain_height(ball_position.x, ball_position.y))
 	{
-		// ball_velocity = reflect;
+		vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
+		ball_velocity = reflect(ball_velocity, normal);
 	}
 
 

@@ -84,6 +84,8 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// ****************************** //
 
 	void simulation_step(float dt);
+	cgp::vec3 reflect(cgp::vec3 v, cgp::vec3 n);
+
 
 	void initialize();    // Standard initialization to be called before the animation loop
 	void display_frame(); // The frame display to be called within the animation loop
