@@ -56,19 +56,28 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// std::vector<cgp::vec3> tree_position;
 
 	mesh_drawable ball;
-	
+	mesh_drawable force_arrow;	// default position: from (0,0,0) to (1,0,0)
+
 	// Ball parameters
 	vec3 ball_position;
 	vec3 ball_velocity;
 	vec3 ball_acceleration;
 	vec3 ball_weight;
 
-	//0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.
-	int phase; 
+	// 0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.
+	int phase;
+	float angle_phi = 0.f;			// when choosing the force, horizontal angle
+	float angle_theta = Pi / 4;		// when choosing the force, vertical angle
+	float force_strength = 1.0f;	// when choosing the force, strength of the force
+
+	float last_action_time = 0.0f;	// when choosing the force, this will be updated to the time of the last action (to avoid angle discontinuities)
 
 	vec3 kick_direction;
 
+	// stop when the speed is lower than this quantity
+	float stop_threshold = 0.1;
 
+	float ball_radius = 1.0f;
 
 
 
@@ -82,6 +91,9 @@ struct scene_structure : cgp::scene_inputs_generic {
 	void display_frame(); // The frame display to be called within the animation loop
 	void display_gui();   // The display of the GUI, also called within the animation loop
 
+	void reset_force();
+	void space_pressed();	// to be called when the user presses space
+	void launch();			// launch the ball
 
 	void mouse_move_event();
 	void mouse_click_event();

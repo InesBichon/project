@@ -8,6 +8,7 @@ cgp::vec3 get_random_color()
 	return {rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0)};
 }
 
+
 void scene_structure::initialize()
 {
 	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
@@ -24,8 +25,8 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_custom/shading_custom.vert.glsl",
 		project::path + "shaders/shading_custom/shading_custom.frag.glsl");
 
-	int N_terrain_samples = 500, n_col = 50;
-	float terrain_length = 50;
+	int N_terrain_samples = 200, n_col = 50;
+	float terrain_length = 500;
 
 	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
 
@@ -53,17 +54,23 @@ void scene_structure::initialize()
 	// Initial position and speed of ball
 	// ******************************************* //
 
-
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
-	ball.model.scaling = 0.2;
+	ball.model.scaling = ball_radius;
 	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
 
-	
-
+	mesh force_arrow_mesh = mesh_primitive_arrow();
+	force_arrow.initialize_data_on_gpu(force_arrow_mesh);
+	force_arrow.material.color = {0.8, 0.8, 0.8};
+	force_arrow.material.phong.ambient = 1;
+	force_arrow.material.phong.diffuse = 0;
+	force_arrow.material.phong.specular = 0;
 
 	cgp_warning::max_warning = 0;
-	
+
+	ball_position = {0, 0, 10};
+	reset_force();
+
 	// skybox code from the cgp examples github
 
 	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox2.png");
@@ -71,9 +78,9 @@ void scene_structure::initialize()
 
 	skybox.initialize_data_on_gpu();
 	skybox.texture.initialize_cubemap_on_gpu(image_grid[1], image_grid[7], image_grid[5], image_grid[3], image_grid[10], image_grid[4]);
+
+	phase = 1;
 }
-
-
 
 void scene_structure::simulation_step(float dt)
 {
@@ -86,9 +93,6 @@ void scene_structure::simulation_step(float dt)
 
 	ball_velocity = ball_velocity + dt * ball_acceleration / m;
 	ball_position = ball_position + dt * ball_velocity;
-	
-
-
 }
 
 void scene_structure::display_frame()
@@ -121,7 +125,7 @@ void scene_structure::display_frame()
 	for (int i = 0; i < n_lights; i++)
 	{
 		cgp::vec3 color = light_colors[i];
-		cgp::vec3 pos = {10 * cos(10. * i), 10 * sin(10. * i), 0};
+		cgp::vec3 pos = {50 * cos(10. * i), 50 * sin(10. * i), 0};
 		pos.z = terrain.evaluate_terrain_height(pos.x, pos.y) + 3;
 		pos.x += 2 * cos(freq * timer.t * (i % 2 + 1));
 		pos.y += 2 * sin(freq * timer.t * (i % 2 + 1));
@@ -136,6 +140,8 @@ void scene_structure::display_frame()
 		// spheres[i].material.phong.diffuse = 0;
 		// spheres[i].material.phong.specular = 0;
 	}
+
+	ball.model.translation = ball_position;
 
 	// environment.background_color = gui;
 
@@ -162,6 +168,53 @@ void scene_structure::display_frame()
 		// }
 	}
 
+	// first phase: theta = pi/4, choose phi
+	if (phase == 1)
+	{
+		const float phi_freq = 0.5;
+
+		angle_phi = 2 * Pi * (timer.t - last_action_time) * phi_freq;
+	}
+
+	// second phase: choose theta
+	else if (phase == 2)
+	{
+		const float theta_freq = 0.5;
+
+		angle_theta = Pi / 4 + Pi / 12 * sin(2 * Pi * (timer.t - last_action_time) * theta_freq);		// smooth angle between pi/6 and pi/3
+	}
+
+	else if (phase == 3)
+	{
+		const float force_freq = 0.5;
+
+		force_strength = 1.0 + 0.7 * sin(2 * Pi * (timer.t - last_action_time) * force_freq);			// smooth force between 0.3 and 1.7
+	}
+
+	// draw the force arrow if necessary
+	if (phase > 0)
+	{
+		cgp::rotation_transform rot = cgp::rotation_axis_angle({0, 0, 1}, angle_phi) * cgp::rotation_axis_angle({0, 1, 0}, -angle_theta);
+		kick_direction = rot * vec3{1, 0, 0};
+
+		force_arrow.model.rotation = rot;
+		force_arrow.model.scaling = 2 * force_strength;
+		force_arrow.model.translation = ball_position + kick_direction * 2;
+		draw(force_arrow, environment);
+	}
+
+	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold)
+	{
+		std::cout << "stop!!\n";
+		phase++;
+		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
+		ball_velocity = {0, 0, 0};
+		last_action_time = timer.t;
+		reset_force();
+	}
+
+	ball_position += ball_velocity * 0.01f;
+	ball_velocity *= 0.95;
 }
 
 
@@ -188,6 +241,32 @@ void scene_structure::display_gui()
 		// tree.supplementary_vbo[0].clear();
 		// tree.initialize_supplementary_data_on_gpu(cgp::numarray<vec3>(tree_position), 4, 1);
 	}
+}
+
+void scene_structure::reset_force()
+{
+	angle_phi = 0.0f;
+	angle_theta = Pi / 4;
+	force_strength = 1.0f;
+}
+
+void scene_structure::space_pressed()
+{
+	if (phase == 1 || phase == 2)
+	{
+		timer.update();
+		last_action_time = timer.t;
+		phase++;
+	}
+	else if (phase == 3)
+		launch();
+}
+
+void scene_structure::launch()
+{
+	std::cout << "launch!!\n";
+	phase = 0;
+	ball_velocity = kick_direction * force_strength * 10;
 }
 
 void scene_structure::mouse_move_event()
