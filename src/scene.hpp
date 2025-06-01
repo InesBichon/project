@@ -48,6 +48,8 @@ struct scene_structure : cgp::scene_inputs_generic {
 	mesh_drawable sphere_light;
 
 	std::vector<cgp::vec3> light_colors;
+
+	cgp::skybox_drawable skybox;
 	// cgp::mesh_drawable tree;
 
 	// int N_trees = 100;

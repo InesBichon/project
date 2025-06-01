@@ -24,7 +24,7 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_custom/shading_custom.vert.glsl",
 		project::path + "shaders/shading_custom/shading_custom.frag.glsl");
 
-	int N_terrain_samples = 300, n_col = 50;
+	int N_terrain_samples = 500, n_col = 50;
 	float terrain_length = 50;
 
 	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
@@ -64,14 +64,13 @@ void scene_structure::initialize()
 
 	cgp_warning::max_warning = 0;
 	
-	// terrain_mesh.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/texture_grass.jpg", GL_REPEAT, GL_REPEAT);
+	// skybox code from the cgp examples github
 
-	// mesh const tree_mesh = create_tree();
-	// tree.initialize_data_on_gpu(tree_mesh);
+	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox2.png");
+	std::vector<image_structure> image_grid = image_split_grid(image_skybox_template, 4, 3);
 
-	// tree_position = terrain.generate_positions_on_terrain(N_trees);
-
-	// tree.initialize_supplementary_data_on_gpu(cgp::numarray<vec3>(tree_position), 4, 1);
+	skybox.initialize_data_on_gpu();
+	skybox.texture.initialize_cubemap_on_gpu(image_grid[1], image_grid[7], image_grid[5], image_grid[3], image_grid[10], image_grid[4]);
 }
 
 
@@ -99,11 +98,16 @@ void scene_structure::display_frame()
 
 	float freq = 0.5f;
 
+	// draw the skybox before everything else
+	glDepthMask(GL_FALSE);
+	draw(skybox, environment);
+	glDepthMask(GL_TRUE);
+
 	// Set the light to the current position of the camera
-	environment.light = camera_control.camera_model.position();
+	// environment.light = camera_control.camera_model.position();
 	glUseProgram(shader_custom.id);
 
-	environment.uniform_generic.uniform_float["ambiant"] = 0.2f / n_lights;
+	environment.uniform_generic.uniform_float["ambiant"] = 0.0f / n_lights;
 	environment.uniform_generic.uniform_float["diffuse"] = 5.f / n_lights;
 	environment.uniform_generic.uniform_float["specular"] = 35.f / n_lights;
 	environment.uniform_generic.uniform_float["specular_exp"] = 100;

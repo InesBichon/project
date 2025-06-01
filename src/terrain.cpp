@@ -21,10 +21,11 @@ float Terrain::evaluate_terrain_height(float x, float y)
 	float noise = height * noise_perlin({u, v}, octave, persistency, frequency_gain);
 
 	// add downwards walls
-	float power = 3.;
-	float height = 1.;
+	double power = 4.;
+	double height = 100;
+	double maxz = 500;
 
-	z += height / pow(std::min(u, v) + .05, power);
+	z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
 
 	return z + noise;
 }
