@@ -57,6 +57,7 @@ void scene_structure::initialize()
 
 
 
+
 	cgp_warning::max_warning = 0;
 	
 	// terrain_mesh.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/texture_grass.jpg", GL_REPEAT, GL_REPEAT);
@@ -69,6 +70,23 @@ void scene_structure::initialize()
 	// tree.initialize_supplementary_data_on_gpu(cgp::numarray<vec3>(tree_position), 4, 1);
 }
 
+
+
+void scene_structure::simulation_step(float dt)
+{
+
+	float m = 0.01f;       // ball mass
+	vec3 g = { 0,0,-9.81f }; // gravity
+
+
+	ball_weight = g;
+
+	ball_velocity = ball_velocity + dt * ball_acceleration / m;
+	ball_position = ball_position + dt * ball_velocity;
+	
+
+	
+}
 
 void scene_structure::display_frame()
 {
