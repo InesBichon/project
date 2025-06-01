@@ -29,6 +29,7 @@ struct Terrain
 	The total number of vertices is N*N (N along each direction x/y) 	*/
 	void update_positions();
 	void create_terrain_mesh(int N, float length, int n_col);
+	cgp::vec3 get_normal_from_position(int N, float length, float x, float y);
 
 	std::vector<cgp::vec3> generate_positions_on_terrain(int);
 };

@@ -99,6 +99,26 @@ void Terrain::create_terrain_mesh(int N, float terrain_length, int n_col)
 	update_positions();
 }
 
+vec3 Terrain::get_normal_from_position(int N, float length, float x, float y)
+{
+	int triangle_position;
+	float u0 = x * (N - 1) / length;
+	float v0 = y * (N -1) / length;
+	int ku0 = round(u0);
+	int kv0 = round(v0);
+	float ru0 = u0 - ku0;
+	float rv0 = v0 - kv0;
+
+	triangle_position = kv0+N*ku0;
+	if (ru0 + rv0 >= 1)
+	{
+		triangle_position += 1;
+	}
+	
+	return mesh.normal[triangle_position];
+}
+
+
 std::vector<cgp::vec3> Terrain::generate_positions_on_terrain(int n_trees)
 {
 	std::vector<cgp::vec3> ans(n_trees);
