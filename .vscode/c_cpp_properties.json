@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/home/pablo/INF443/csc43043ep_practice_code/cgp/library"
+                "/home/pablo/INF443/csc43043ep_practice_code/cgp/library",
+                "/home/ines_bichon/projets-vscode/csc43043ep_practice_code/cgp/library"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

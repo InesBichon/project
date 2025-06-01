@@ -50,6 +50,14 @@ void scene_structure::initialize()
 		// spheres[i].shader = shader_custom;
 	}
 	
+	mesh ball_mesh = mesh_primitive_sphere();
+	ball.initialize_data_on_gpu(ball_mesh);
+	ball.model.scaling = 0.2;
+	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
+
+
+
+
 	cgp_warning::max_warning = 0;
 	
 	// skybox code from the cgp examples github
@@ -59,6 +67,24 @@ void scene_structure::initialize()
 
 	skybox.initialize_data_on_gpu();
 	skybox.texture.initialize_cubemap_on_gpu(image_grid[1], image_grid[7], image_grid[5], image_grid[3], image_grid[10], image_grid[4]);
+}
+
+
+
+void scene_structure::simulation_step(float dt)
+{
+
+	float m = 0.01f;       // ball mass
+	vec3 g = { 0,0,-9.81f }; // gravity
+
+
+	ball_weight = g;
+
+	ball_velocity = ball_velocity + dt * ball_acceleration / m;
+	ball_position = ball_position + dt * ball_velocity;
+	
+
+	
 }
 
 void scene_structure::display_frame()
@@ -118,6 +144,7 @@ void scene_structure::display_frame()
 		draw(sphere, environment);
 	
 	// draw(tree, environment, N_trees);
+	draw(ball, environment);
 
 	if (gui.display_wireframe)
 	{

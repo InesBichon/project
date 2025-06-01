@@ -8,7 +8,16 @@
 		},
 		{
 			"name": "cgp",
-			"path": "../../cgp/library/",
+			"path": "../../cgp/library/"
+		},
+		{
+			"path": "../04b_textures"
+		},
+		{
+			"path": "../05_animation"
+		},
+		{
+			"path": "../06_simulation"
 		}
 	],
 
