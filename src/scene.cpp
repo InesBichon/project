@@ -50,12 +50,16 @@ void scene_structure::initialize()
 		// spheres[i].shader = shader_custom;
 	}
 	
+	// Initial position and speed of ball
+	// ******************************************* //
+
+
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
 	ball.model.scaling = 0.2;
 	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
 
-
+	
 
 
 	cgp_warning::max_warning = 0;
@@ -85,7 +89,7 @@ void scene_structure::simulation_step(float dt)
 	ball_position = ball_position + dt * ball_velocity;
 	
 
-	
+
 }
 
 void scene_structure::display_frame()
