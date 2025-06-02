@@ -8,6 +8,15 @@ cgp::vec3 get_random_color()
 	return {rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0)};
 }
 
+cgp::vec3 scene_structure::reflect(cgp::vec3 v, cgp::vec3 n)
+{
+	cgp::vec3 new_v;
+	new_v = 2 * n * dot(n, v) - v;
+	return -new_v;
+
+}
+
+
 
 void scene_structure::initialize()
 {
@@ -92,15 +101,19 @@ void scene_structure::simulation_step(float dt)
 	vec3 g = { 0,0,-9.81f }; // gravity
 
 
-	ball_weight = m * g * 0.0001;
+	ball_weight = m * g * 0.1f;
 	ball_force = ball_weight;
 
 	ball_velocity = ball_velocity + dt * ball_force / m;
 	ball_position = ball_position + dt * ball_velocity;
 	
-	if (ball_position.z < terrain.evaluate_terrain_height(ball_position.x, ball_position.y))
+	vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
+
+	if (ball_position.z - 2 * ball_radius < terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
-		// ball_velocity = reflect;
+		ball_velocity = 0.9 * reflect(ball_velocity, normal);
+		// ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y);
+
 	}
 
 
@@ -227,9 +240,6 @@ void scene_structure::display_frame()
 		last_action_time = timer.t;
 		reset_force();
 	}
-
-	ball_position += ball_velocity * 0.01f;
-	ball_velocity *= 0.95;
 }
 
 
