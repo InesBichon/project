@@ -1,0 +1,6 @@
+- problèmes : gérer les collisions
+- calculer la parabole dans le vertex shader pour éviter de transférer des données
+- skybox (pb pour trouver une bonne image, jolie & de bonne res, etc)
+- scaling non uniforme (comment gérer)
+- murs aux bords de la map
+- texture pour la baballe

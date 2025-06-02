@@ -114,6 +114,10 @@ vec3 Terrain::get_normal_from_position(int N, float length, float x, float y)
 	{
 		triangle_position += 1;
 	}
+
+	// if we're outside the terrain, return a vertical normal
+	if (triangle_position < 0 || triangle_position >= mesh.normal.size())
+		return {0, 0, 1};
 	
 	return mesh.normal[triangle_position];
 }

@@ -76,7 +76,7 @@ void scene_structure::initialize()
 
 	// skybox code from the cgp examples github
 
-	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox2.png");
+	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox4.jpg");
 	std::vector<image_structure> image_grid = image_split_grid(image_skybox_template, 4, 3);
 
 	skybox.initialize_data_on_gpu();
@@ -218,7 +218,7 @@ void scene_structure::display_frame()
 		draw(force_arrow, environment);
 	}
 
-	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold)
+	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_velocity.z < terrain.evaluate_terrain_height(ball_velocity.x, ball_velocity.y) + ball_radius)
 	{
 		std::cout << "stop!!\n";
 		phase++;
@@ -281,7 +281,7 @@ void scene_structure::launch()
 {
 	std::cout << "launch!!\n";
 	phase = 0;
-	ball_velocity = kick_direction * force_strength * 10;
+	ball_velocity = kick_direction * force_strength * 2;
 }
 
 void scene_structure::mouse_move_event()
