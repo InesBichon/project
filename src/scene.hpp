@@ -55,8 +55,11 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// int N_trees = 100;
 	// std::vector<cgp::vec3> tree_position;
 
+	int N_parabola = 100;		// number of 
+
 	mesh_drawable ball;
 	mesh_drawable force_arrow;	// default position: from (0,0,0) to (1,0,0)
+	curve_drawable segments;
 
 	// Ball parameters
 	vec3 ball_position;
