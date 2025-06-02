@@ -16,8 +16,6 @@ cgp::vec3 scene_structure::reflect(cgp::vec3 v, cgp::vec3 n)
 
 }
 
-
-
 void scene_structure::initialize()
 {
 	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
@@ -91,11 +89,13 @@ void scene_structure::initialize()
 	skybox.initialize_data_on_gpu();
 	skybox.texture.initialize_cubemap_on_gpu(image_grid[1], image_grid[7], image_grid[5], image_grid[3], image_grid[10], image_grid[4]);
 
-	phase = 1;
+	phase = 0;
 }
 
 void scene_structure::simulation_step(float dt)
 {
+	if (phase > 0)
+		return;
 
 	float m = 0.01f;       // ball mass
 	vec3 g = { 0,0,-9.81f }; // gravity
@@ -109,11 +109,12 @@ void scene_structure::simulation_step(float dt)
 	
 	vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
 
-	if (ball_position.z - ball_radius < terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
+	if (ball_position.z - ball_radius <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
+		// std::cout << "rebond at time " << round(timer.t * 100) / 100 << " velocity " << ball_velocity << " norm " << norm(ball_velocity) << " new velocity ";
 		ball_velocity = 0.9 * reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
-
+		// std::cout << ball_velocity << " new norm " << norm(ball_velocity) << '\n';
 	}
 
 	// if ()

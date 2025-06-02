@@ -4,3 +4,5 @@
 - scaling non uniforme (comment gérer)
 - murs aux bords de la map
 - texture pour la baballe
+- la caméra de base est nulle : il faut ajouter une manière de se déplacer -> WASD !!
+- gérer les pentes : ne ralentir la balle que si la pente est peu verticale
