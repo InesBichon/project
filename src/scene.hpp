@@ -27,7 +27,8 @@ struct scene_structure : cgp::scene_inputs_generic {
 	camera_controller_orbit_euler camera_control;
 	camera_projection_perspective camera_projection;
 	window_structure window;
-	opengl_shader_structure shader_custom;
+	opengl_shader_structure shader_custom;		// shader with Phong lighting
+	opengl_shader_structure shader_parabola;	// shader allowing to dynamically compute a parabolic shape
 
 	mesh_drawable global_frame;          // The standard global frame
 	environment_structure environment;   // Standard environment controler
@@ -55,7 +56,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// int N_trees = 100;
 	// std::vector<cgp::vec3> tree_position;
 
-	int N_parabola = 100;		// number of 
+	int N_parabola = 100;		// number of points in the parabola
 
 	mesh_drawable ball;
 	mesh_drawable force_arrow;	// default position: from (0,0,0) to (1,0,0)
@@ -66,6 +67,9 @@ struct scene_structure : cgp::scene_inputs_generic {
 	vec3 ball_velocity;
 	vec3 ball_force;
 	vec3 ball_weight;
+
+	const float force_coef = 4;		// multiply the force strength by this value
+	const float gravity = 9.81;
 
 	// 0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.
 	int phase;

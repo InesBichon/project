@@ -32,6 +32,11 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_custom/shading_custom.vert.glsl",
 		project::path + "shaders/shading_custom/shading_custom.frag.glsl");
 
+	shader_parabola.load(
+		project::path + "shaders/shading_parabola/shading_parabola.vert.glsl",
+		project::path + "shaders/shading_parabola/shading_parabola.frag.glsl"
+	);
+
 	int N_terrain_samples = 200, n_col = 50;
 	float terrain_length = 500;
 
@@ -76,8 +81,6 @@ void scene_structure::initialize()
 	force_arrow.material.phong.diffuse = 0;
 	force_arrow.material.phong.specular = 0;
 
-	cgp_warning::max_warning = 0;
-
 	ball_position = {0, 0, 10};
 	reset_force();
 
@@ -89,7 +92,20 @@ void scene_structure::initialize()
 	skybox.initialize_data_on_gpu();
 	skybox.texture.initialize_cubemap_on_gpu(image_grid[1], image_grid[7], image_grid[5], image_grid[3], image_grid[10], image_grid[4]);
 
+	// initialize the curve for the parabola: it's actually a chain of N segments going from (0,0,0) to (1,0,0) in a straight line
+	// then, the actual parabola will be computed in the vertex shader to avoid copying data to the GPU each frame
+
+	std::vector<vec3> positions(N_parabola, {0., 0., 0.});
+	for (int i = 0; i < N_parabola; i++)
+		positions[i].x = (float)(i) / (N_parabola - 1);
+
+	segments.display_type = curve_drawable_display_type::Curve;
+	segments.shader = shader_parabola;
+	segments.initialize_data_on_gpu(positions, shader_parabola);
+
 	phase = 0;
+
+	cgp_warning::max_warning = 0;
 }
 
 void scene_structure::simulation_step(float dt)
@@ -98,10 +114,10 @@ void scene_structure::simulation_step(float dt)
 		return;
 
 	float m = 0.01f;       // ball mass
-	vec3 g = { 0,0,-9.81f }; // gravity
+	vec3 g = { 0,0,-gravity}; // gravity
 
 
-	ball_weight = m * g * 0.5f;
+	ball_weight = m * g;
 	ball_force = ball_weight;
 
 	ball_velocity = ball_velocity + dt * ball_force / m;
@@ -114,16 +130,11 @@ void scene_structure::simulation_step(float dt)
 		ball_velocity = reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 
-	if (normal.z > 0.9)
-	{
-		std::cout << normal.z;
-		ball_velocity = 0.9 * reflect(ball_velocity, normal);
+		if (normal.z > 0.9)
+		{
+			ball_velocity = 0.9 * reflect(ball_velocity, normal);
+		}
 	}
-
-	}
-
-
-
 }
 
 void scene_structure::display_frame()
@@ -191,16 +202,7 @@ void scene_structure::display_frame()
 	draw(ball, environment);
 
 	if (gui.display_wireframe)
-	{
 		draw_wireframe(terrain_mesh, environment);
-		
-		// for (vec3 pos: tree_position)
-		// {
-		// 	tree.model.translation = pos;
-		// 	tree.model.translation.z -= 0.1f;
-		// 	draw_wireframe(tree, environment);
-		// }
-	}
 
 	// first phase: theta = pi/4, choose phi
 	if (phase == 1)
@@ -237,7 +239,7 @@ void scene_structure::display_frame()
 		draw(force_arrow, environment);
 	}
 
-	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_velocity.z < terrain.evaluate_terrain_height(ball_velocity.x, ball_velocity.y) + ball_radius)
+	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_velocity.z <= terrain.evaluate_terrain_height(ball_velocity.x, ball_velocity.y) + 1.5 * ball_radius)
 	{
 		std::cout << "stop!!\n";
 		phase++;
@@ -246,6 +248,17 @@ void scene_structure::display_frame()
 		last_action_time = timer.t;
 		reset_force();
 	}
+
+	glUseProgram(shader_parabola.id);
+
+	// draw the parabola
+	environment.uniform_generic.uniform_vec3["ball_position"] = ball_position;
+	environment.uniform_generic.uniform_vec3["kickforce"] = kick_direction * force_strength * force_coef;
+	environment.uniform_generic.uniform_float["gravity"] = gravity;
+
+	environment.uniform_generic.uniform_vec3["segment_color"] = {1., 0., 0.};
+
+	draw(segments, environment);
 }
 
 
@@ -297,7 +310,7 @@ void scene_structure::launch()
 {
 	std::cout << "launch!!\n";
 	phase = 0;
-	ball_velocity = kick_direction * force_strength * 4;
+	ball_velocity = kick_direction * force_strength * force_coef;
 }
 
 void scene_structure::mouse_move_event()
