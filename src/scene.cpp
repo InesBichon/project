@@ -109,13 +109,17 @@ void scene_structure::simulation_step(float dt)
 	
 	vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
 
-	if (ball_position.z - 2 * ball_radius < terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
+	if (ball_position.z - ball_radius < terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
 		ball_velocity = 0.9 * reflect(ball_velocity, normal);
-		// ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y);
+		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 
 	}
 
+	// if ()
+	// {
+	// 	ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
+	// }
 
 
 }
