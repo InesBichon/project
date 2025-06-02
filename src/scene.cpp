@@ -230,7 +230,7 @@ void scene_structure::display_frame()
 		force_strength = 1.0 + 0.7 * sin(2 * Pi * (timer.t - last_action_time) * force_freq);			// smooth force between 0.3 and 1.7
 	}
 
-	// draw the force arrow if necessary
+	// draw the force arrow and the parabola if necessary
 	if (phase > 0)
 	{
 		cgp::rotation_transform rot = cgp::rotation_axis_angle({0, 0, 1}, angle_phi) * cgp::rotation_axis_angle({0, 1, 0}, -angle_theta);
@@ -240,6 +240,17 @@ void scene_structure::display_frame()
 		force_arrow.model.scaling = 2 * force_strength;
 		force_arrow.model.translation = ball_position + kick_direction * 2;
 		draw(force_arrow, environment);
+
+		glUseProgram(shader_parabola.id);
+
+		// draw the parabola
+		environment.uniform_generic.uniform_vec3["ball_position"] = ball_position;
+		environment.uniform_generic.uniform_vec3["kickforce"] = kick_direction * force_strength * force_coef;
+		environment.uniform_generic.uniform_float["gravity"] = gravity;
+
+		environment.uniform_generic.uniform_vec3["segment_color"] = {1., 0., 0.};
+
+		draw(segments, environment);
 	}
 
 	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_velocity.z <= terrain.evaluate_terrain_height(ball_velocity.x, ball_velocity.y) + 1.5 * ball_radius)
@@ -251,17 +262,6 @@ void scene_structure::display_frame()
 		last_action_time = timer.t;
 		reset_force();
 	}
-
-	glUseProgram(shader_parabola.id);
-
-	// draw the parabola
-	environment.uniform_generic.uniform_vec3["ball_position"] = ball_position;
-	environment.uniform_generic.uniform_vec3["kickforce"] = kick_direction * force_strength * force_coef;
-	environment.uniform_generic.uniform_float["gravity"] = gravity;
-
-	environment.uniform_generic.uniform_vec3["segment_color"] = {1., 0., 0.};
-
-	draw(segments, environment);
 }
 
 

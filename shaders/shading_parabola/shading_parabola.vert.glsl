@@ -23,7 +23,7 @@ void main()
 {
 	// The position of the vertex in the world space
 	float t = vertex_position.x * maxt;
-	vec4 position = vec4(ball_position - 0.5 * vec3(0, 0, -gravity) * t * t + kickforce * t, 1.0);
+	vec4 position = vec4(ball_position + 0.5 * vec3(0, 0, -gravity) * t * t + kickforce * t, 1.0);
 
 	// The projected position of the vertex in the normalized device coordinates:
 	vec4 position_projected = projection * view * position;
