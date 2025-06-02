@@ -101,7 +101,7 @@ void scene_structure::simulation_step(float dt)
 	vec3 g = { 0,0,-9.81f }; // gravity
 
 
-	ball_weight = m * g * 0.5f;
+	ball_weight = m * g * 0.2f;
 	ball_force = ball_weight;
 
 	ball_velocity = ball_velocity + dt * ball_force / m;
@@ -111,13 +111,14 @@ void scene_structure::simulation_step(float dt)
 
 	if (ball_position.z - ball_radius <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
-		ball_velocity = reflect(ball_velocity, normal);
+		ball_velocity = 0.8 * reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 
-		if (normal.z > 0.9)
+		if (normal.z < 0.995)
 		{
 			std::cout << normal.z;
-			ball_velocity = 0.9 * reflect(ball_velocity, normal);
+			ball_velocity = 1.3 * ball_velocity;
+			std::cout <<cgp::norm(ball_velocity);
 		}
 
 	}
@@ -291,6 +292,14 @@ void scene_structure::space_pressed()
 	}
 	else if (phase == 3)
 		launch();
+}
+
+void scene_structure::reset_position()
+{
+	timer.update();
+	ball_position = {10.f, 10.f, 10.f};
+	ball_velocity = {0., 0., 0.};
+
 }
 
 void scene_structure::launch()

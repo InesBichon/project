@@ -78,7 +78,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	vec3 kick_direction;
 
 	// stop when the speed is lower than this quantity
-	float stop_threshold = 0.1;
+	float stop_threshold = 0.2;
 
 	float ball_radius = 1.0f;
 
@@ -96,6 +96,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 
 	void reset_force();
 	void space_pressed();	// to be called when the user presses space
+	void reset_position();	// to be called when the user presses z, resets the position of the ball
 	void launch();			// launch the ball
 
 	void mouse_move_event();
