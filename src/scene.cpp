@@ -101,7 +101,7 @@ void scene_structure::simulation_step(float dt)
 	vec3 g = { 0,0,-9.81f }; // gravity
 
 
-	ball_weight = m * g * 0.1f;
+	ball_weight = m * g * 0.5f;
 	ball_force = ball_weight;
 
 	ball_velocity = ball_velocity + dt * ball_force / m;
@@ -109,17 +109,19 @@ void scene_structure::simulation_step(float dt)
 	
 	vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
 
-	if (ball_position.z - ball_radius < terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
+	if (ball_position.z - ball_radius <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
-		ball_velocity = 0.9 * reflect(ball_velocity, normal);
+		ball_velocity = reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
+
+	if (normal.z > 0.9)
+	{
+		std::cout << normal.z;
+		ball_velocity = 0.9 * reflect(ball_velocity, normal);
+	}
 
 	}
 
-	// if ()
-	// {
-	// 	ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
-	// }
 
 
 }
@@ -140,7 +142,7 @@ void scene_structure::display_frame()
 	// environment.light = camera_control.camera_model.position();
 	glUseProgram(shader_custom.id);
 
-	environment.uniform_generic.uniform_float["ambiant"] = 0.0f / n_lights;
+	environment.uniform_generic.uniform_float["ambiant"] = 1.0f / n_lights;
 	environment.uniform_generic.uniform_float["diffuse"] = 5.f / n_lights;
 	environment.uniform_generic.uniform_float["specular"] = 35.f / n_lights;
 	environment.uniform_generic.uniform_float["specular_exp"] = 100;
@@ -295,7 +297,7 @@ void scene_structure::launch()
 {
 	std::cout << "launch!!\n";
 	phase = 0;
-	ball_velocity = kick_direction * force_strength * 2;
+	ball_velocity = kick_direction * force_strength * 4;
 }
 
 void scene_structure::mouse_move_event()
