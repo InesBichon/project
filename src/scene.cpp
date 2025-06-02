@@ -114,11 +114,11 @@ void scene_structure::simulation_step(float dt)
 		ball_velocity = reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 
-	if (normal.z > 0.9)
-	{
-		std::cout << normal.z;
-		ball_velocity = 0.9 * reflect(ball_velocity, normal);
-	}
+		if (normal.z > 0.9)
+		{
+			std::cout << normal.z;
+			ball_velocity = 0.9 * reflect(ball_velocity, normal);
+		}
 
 	}
 
