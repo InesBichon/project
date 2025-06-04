@@ -18,16 +18,16 @@ float Terrain::evaluate_terrain_height(float x, float y)
 	}
 
 	// Compute the Perlin noise
-	float noise = height * noise_perlin({u, v}, octave, persistency, frequency_gain);
+	// float noise = height * noise_perlin({u, v}, octave, persistency, frequency_gain);
 
 	// add downwards walls
 	double power = 4.;
 	double height = 100;
 	double maxz = 500;
 
-	z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
+	// z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
 
-	return z + noise;
+	return z;
 }
 
 void Terrain::update_positions()
@@ -92,7 +92,7 @@ void Terrain::create_terrain_mesh(int N, float terrain_length, int n_col)
 	for (int i = 0; i < n_col; i++)
 	{
 		p_i[i] = {(rand_uniform() - 0.5f) * terrain_length, (rand_uniform() - 0.5f) * terrain_length};
-		h_i[i] = rand_uniform(-5.0f, 5.0f);
+		h_i[i] = rand_uniform(-5.0f, 10.f);
 		s_i[i] = rand_uniform(1.0f, 10.0f);
 	}
 	
@@ -102,8 +102,8 @@ void Terrain::create_terrain_mesh(int N, float terrain_length, int n_col)
 vec3 Terrain::get_normal_from_position(int N, float length, float x, float y)
 {
 	int triangle_position;
-	float u0 = x * (N - 1) / length;
-	float v0 = y * (N -1) / length;
+	float u0 = (x / length + 0.5) * (N-1);
+	float v0 = (y / length + 0.5) * (N-1);
 	int ku0 = round(u0);
 	int kv0 = round(v0);
 	float ru0 = u0 - ku0;
@@ -117,7 +117,10 @@ vec3 Terrain::get_normal_from_position(int N, float length, float x, float y)
 
 	// if we're outside the terrain, return a vertical normal
 	if (triangle_position < 0 || triangle_position >= mesh.normal.size())
+	{
+		std::cout << "outside\n";
 		return {0, 0, 1};
+	}
 	
 	return mesh.normal[triangle_position];
 }

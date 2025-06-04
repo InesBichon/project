@@ -5,4 +5,7 @@
 - murs aux bords de la map
 - texture pour la baballe
 - la caméra de base est nulle : il faut ajouter une manière de se déplacer -> WASD !!
+- reset avec "z"
 - gérer les pentes : ne ralentir la balle que si la pente est peu verticale
+- rebonds goofy
+- afficher dans la console une liste des commandes
