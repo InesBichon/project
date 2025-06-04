@@ -37,8 +37,8 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_parabola/shading_parabola.frag.glsl"
 	);
 
-	int N_terrain_samples = 200, n_col = 0;
-	float terrain_length = 500;
+	int N_terrain_samples = 200, n_col = 50;
+	float terrain_length = 200;
 
 	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
 
@@ -103,6 +103,12 @@ void scene_structure::initialize()
 	segments.shader = shader_parabola;
 	segments.initialize_data_on_gpu(positions, shader_parabola);
 
+	GLfloat vals[2];
+	glGetFloatv(GL_SMOOTH_LINE_WIDTH_GRANULARITY, vals);
+
+	std::cout << "min " << vals[0] << " max " << vals[1];
+
+
 	phase = 0;
 
 	cgp_warning::max_warning = 0;
@@ -127,16 +133,13 @@ void scene_structure::simulation_step(float dt)
 
 	if (ball_position.z - ball_radius <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
+		// std::cout << "rebond\n\tinitial velocity " << ball_velocity << "\n\tnormal " << normal << "\n\t";
 		ball_velocity = 0.8 * reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
+		// std::cout << "velocity " << ball_velocity << "\n\n";
 
-		// if (normal.z < 0.99)
-		// {
-		// 	std::cout << normal.z;
-		// 	ball_velocity = 1.3 * ball_velocity;
-		// 	std::cout <<cgp::norm(ball_velocity);
-		// }
-
+		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 5)		// we want the ball to slide down slopes reasonably fast, but not gain too much speed
+			ball_velocity = 1.3 * ball_velocity;
 	}
 	// std::cout << ball_velocity << "ball_velocity\n";
 	// std::cout << norm(ball_velocity) << "ball_velocity_norm\n";
@@ -247,6 +250,7 @@ void scene_structure::display_frame()
 		draw(force_arrow, environment);
 
 		glUseProgram(shader_parabola.id);
+		// glLineWidth((GLfloat) 2.);
 
 		// draw the parabola
 		environment.uniform_generic.uniform_vec3["ball_position"] = ball_position;
@@ -258,7 +262,7 @@ void scene_structure::display_frame()
 		draw(segments, environment);
 	}
 
-	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_velocity.z <= terrain.evaluate_terrain_height(ball_velocity.x, ball_velocity.y) + 1.5 * ball_radius)
+	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_position.z <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 1.5 * ball_radius)
 	{
 		std::cout << "stop!!\n";
 		phase++;
@@ -317,9 +321,9 @@ void scene_structure::space_pressed()
 void scene_structure::reset_position()
 {
 	timer.update();
-	ball_position = {10.f, 10.f, 10.f};
-	ball_velocity = {0., 0., 0.};
-
+	ball_position = {0., 0., terrain.evaluate_terrain_height(0., 0.) + 15 * ball_radius};
+	ball_velocity = {0.f, 0.f, 0.f};
+	phase = 0;
 }
 
 void scene_structure::launch()
