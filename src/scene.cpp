@@ -37,7 +37,7 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_parabola/shading_parabola.frag.glsl"
 	);
 
-	int N_terrain_samples = 200, n_col = 50;
+	int N_terrain_samples = 200, n_col = 0;
 	float terrain_length = 500;
 
 	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
@@ -130,14 +130,19 @@ void scene_structure::simulation_step(float dt)
 		ball_velocity = 0.8 * reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 
-		if (normal.z < 0.995)
-		{
-			std::cout << normal.z;
-			ball_velocity = 1.3 * ball_velocity;
-			std::cout <<cgp::norm(ball_velocity);
-		}
+		// if (normal.z < 0.99)
+		// {
+		// 	std::cout << normal.z;
+		// 	ball_velocity = 1.3 * ball_velocity;
+		// 	std::cout <<cgp::norm(ball_velocity);
+		// }
 
 	}
+	// std::cout << ball_velocity << "ball_velocity\n";
+	// std::cout << norm(ball_velocity) << "ball_velocity_norm\n";
+
+
+
 }
 
 void scene_structure::display_frame()
