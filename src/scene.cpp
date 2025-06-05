@@ -70,8 +70,8 @@ void scene_structure::initialize()
 		
 		mesh sphere_mesh = mesh_primitive_sphere();
 		spheres[i].initialize_data_on_gpu(sphere_mesh);
-		spheres[i].model.scaling = 0.5f; // coordinates are multiplied by 0.2 in the shader
-		// spheres[i].texture = 
+		spheres[i].model.scaling = 0.5f;
+		// spheres[i].texture =				// it was a bit hard to implement rolling texture
 		spheres[i].material.color = light_colors[i];
 		// spheres[i].shader = shader_custom;
 	}
@@ -123,6 +123,7 @@ void scene_structure::initialize()
 
 	skybox.initialize_data_on_gpu();
 	skybox.texture.initialize_cubemap_on_gpu(image_grid[1], image_grid[7], image_grid[5], image_grid[3], image_grid[10], image_grid[4]);
+	skybox.model.rotation = cgp::rotation_axis_angle({1,0,0}, Pi/2);
 
 	// initialize the curve for the parabola: it's actually a chain of N segments going from (0,0,0) to (1,0,0) in a straight line
 	// then, the actual parabola will be computed in the vertex shader to avoid copying data to the GPU each frame
@@ -206,7 +207,6 @@ void scene_structure::display_frame()
 
 
 	ball.model.translation = ball_position;
-	// environment.background_color = gui;
 
 	// if (gui.display_frame)
 	// 	draw(global_frame, environment);
@@ -286,14 +286,11 @@ void scene_structure::display_frame()
 
 	spheres[n_lights+1].model.translation = pos2;
 
-
 	for (mesh_drawable& sphere: spheres)
 		draw(sphere, environment);
 
-
-
-	if (gui.display_wireframe)
-		draw_wireframe(terrain_mesh, environment);
+	// if (gui.display_wireframe)
+	// 	draw_wireframe(terrain_mesh, environment);
 
 	// first phase: theta = pi/4, choose phi
 	if (phase == 1)
@@ -352,6 +349,17 @@ void scene_structure::display_frame()
 		reset_force();
 	}
 
+	// we want the camera to stay inside the arena (x & y between -boundary and boundary), above the ground (z >= height of ground + 1) and with a correct "up" vector
+
+	vec3 campos = camera_control.camera_model.position_camera;
+	float boundary = terrain_length * 0.45;
+
+	campos.x = std::max(std::min(campos.x, boundary), -boundary);
+	campos.y = std::max(std::min(campos.y, boundary), -boundary);
+	campos.z = std::max(campos.z, terrain.evaluate_terrain_height(campos.x, campos.y) + 1.f);
+
+	camera_control.camera_model.position_camera = campos;
+
 	camera_control.camera_model.look_at(camera_control.camera_model.position_camera,
 		camera_control.camera_model.position_camera + camera_control.camera_model.front(),
 		{0, 0, 1});
@@ -360,6 +368,7 @@ void scene_structure::display_frame()
 
 void scene_structure::display_gui()
 {
+	return;
 	ImGui::Checkbox("Frame", &gui.display_frame);
 	ImGui::Checkbox("Wireframe", &gui.display_wireframe);
 
@@ -375,11 +384,6 @@ void scene_structure::display_gui()
 		terrain_mesh.vbo_position.update(terrain.mesh.position);
 		terrain_mesh.vbo_normal.update(terrain.mesh.normal);
 		terrain_mesh.vbo_color.update(terrain.mesh.color);
-		
-		// for (vec3& pos: tree_position)
-		// 	pos.z = terrain.evaluate_terrain_height(pos.x, pos.y);
-		// tree.supplementary_vbo[0].clear();
-		// tree.initialize_supplementary_data_on_gpu(cgp::numarray<vec3>(tree_position), 4, 1);
 	}
 }
 
