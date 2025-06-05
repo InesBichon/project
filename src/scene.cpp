@@ -37,7 +37,7 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_parabola/shading_parabola.frag.glsl"
 	);
 
-	int N_terrain_samples = 200, n_col = 50;
+	int N_terrain_samples = 100, n_col = 50;
 	float terrain_length = 200;
 
 	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
@@ -76,7 +76,7 @@ void scene_structure::initialize()
 
 	mesh torus_mesh = mesh_primitive_torus(torus_max_radius, torus_min_radius);
 	target.initialize_data_on_gpu(torus_mesh);
-	target.material.color = {1., 0., 0.};
+	target.material.color = {9., 0., 0.};
 	
 	// target.model.rotation = 
 
@@ -216,14 +216,13 @@ void scene_structure::display_frame()
 
 	ball.model.translation = ball_position;
 	draw(ball, environment);
-	vec3 target_position = {5.0f, 5.0f, terrain.evaluate_terrain_height(5.0f, 5.0f)};
+	float torus_x = 15.0f;
+	float torus_y = 15.0f;
+	vec3 target_position = {torus_x, torus_y, torus_max_radius + terrain.evaluate_terrain_height(torus_x, torus_y)};
+	rotation_transform R = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2);
+	target.model.rotation = R;
 	target.model.translation = target_position;
-	vec3 target_normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, target_position.x, target_position.y);
-	vec3 axis_z = {0.f, 0.f, 1.0f};
-
-	// cgp::rotation_transform = cgp::rotation_axis_angle(axis_z, angle(axis_z, target_normal));
-	// cgp::rotation_around_center = 
-	// target.model.rotation = rot;
+	
 	draw(target, environment);
 
 	if (gui.display_wireframe)
