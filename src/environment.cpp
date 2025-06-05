@@ -1,6 +1,5 @@
 #include "environment.hpp"
-#include "tore.hpp"
-#include "tore.cpp"
+
 // Change these global values to modify the default behavior
 // ************************************************************* //
 // The initial zoom factor on the GUI

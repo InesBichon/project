@@ -77,6 +77,12 @@ void scene_structure::initialize()
 	ball.model.scaling = ball_radius;
 	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
 
+	mesh torus_mesh = mesh_primitive_torus(torus_max_radius, torus_min_radius);
+	target.initialize_data_on_gpu(torus_mesh);
+	target.material.color = {1., 0., 0.};
+	
+	// target.model.rotation = 
+
 	mesh force_arrow_mesh = mesh_primitive_arrow();
 	force_arrow.initialize_data_on_gpu(force_arrow_mesh);
 	force_arrow.material.color = {0.8, 0.8, 0.8};
@@ -138,6 +144,11 @@ void scene_structure::simulation_step(float dt)
 		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 3)		// we want the ball to slide down slopes reasonably fast, but not gain too much speed
 			ball_velocity = 1.3 * ball_velocity;
 	}
+	// std::cout << ball_velocity << "ball_velocity\n";
+	// std::cout << norm(ball_velocity) << "ball_velocity_norm\n";
+
+
+
 }
 
 void scene_structure::display_frame()
@@ -196,7 +207,6 @@ void scene_structure::display_frame()
 	}
 
 	ball.model.translation = ball_position;
-
 	// environment.background_color = gui;
 
 	// if (gui.display_frame)
@@ -212,6 +222,15 @@ void scene_structure::display_frame()
 
 	ball.model.translation = ball_position;
 	draw(ball, environment);
+	vec3 target_position = {5.0f, 5.0f, terrain.evaluate_terrain_height(5.0f, 5.0f)};
+	target.model.translation = target_position;
+	vec3 target_normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, target_position.x, target_position.y);
+	vec3 axis_z = {0.f, 0.f, 1.0f};
+
+	// cgp::rotation_transform = cgp::rotation_axis_angle(axis_z, angle(axis_z, target_normal));
+	// cgp::rotation_around_center = 
+	// target.model.rotation = rot;
+	draw(target, environment);
 
 	if (gui.display_wireframe)
 		draw_wireframe(terrain_mesh, environment);

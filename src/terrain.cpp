@@ -27,6 +27,7 @@ float Terrain::evaluate_terrain_height(float x, float y)
 
 	z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
 
+	// return z + noise;
 	return z;
 }
 
