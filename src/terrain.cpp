@@ -25,7 +25,7 @@ float Terrain::evaluate_terrain_height(float x, float y)
 	double height = 100;
 	double maxz = 500;
 
-	// z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
+	z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
 
 	return z;
 }

@@ -24,7 +24,8 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// ****************************** //
 	// Elements and shapes of the scene
 	// ****************************** //
-	camera_controller_orbit_euler camera_control;
+	// camera_controller_orbit_euler camera_control;
+	camera_controller_first_person camera_control;
 	camera_projection_perspective camera_projection;
 	window_structure window;
 	opengl_shader_structure shader_custom;		// shader with Phong lighting
@@ -34,7 +35,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	environment_structure environment;   // Standard environment controler
 	input_devices inputs;                // Storage for inputs status (mouse, keyboard, window dimension)
 	gui_parameters gui;                  // Standard GUI element storage
-	
+
 	// ****************************** //
 	// Elements and shapes of the scene
 	// ****************************** //
@@ -78,6 +79,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	float force_strength = 1.0f;	// when choosing the force, strength of the force
 
 	float last_action_time = 0.0f;	// when choosing the force, this will be updated to the time of the last action (to avoid angle discontinuities)
+	float last_frame_time = -1.0f;
 
 	vec3 kick_direction;
 
@@ -103,6 +105,8 @@ struct scene_structure : cgp::scene_inputs_generic {
 	void reset_position();	// to be called when the user presses z, resets the position of the ball
 	void launch();			// launch the ball
 
+	// void move_cam(float time_passed);		// move the camera (with a given real time between the previous frame and the actual one)
+											// no longer necessary with camera_controller_first_person (we manually re-implemnted WASD)
 	void mouse_move_event();
 	void mouse_click_event();
 	void keyboard_event();

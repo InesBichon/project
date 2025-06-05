@@ -122,7 +122,6 @@ void animation_loop()
 	scene.inputs.mouse.on_gui = ImGui::GetIO().WantCaptureMouse;
 	scene.inputs.time_interval = time_interval;
 
-
 	// Display the ImGUI interface (button, sliders, etc)
 	display_gui_default();
 	scene.display_gui();
@@ -278,6 +277,7 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 
 		if (key == GLFW_KEY_T && action == GLFW_PRESS)
 			scene.reset_position();
+
 		// Press 'V' for camera frame/view matrix debug
 		if (key == GLFW_KEY_V && action == GLFW_PRESS && scene.inputs.keyboard.shift) {
 			auto const camera_model = scene.camera_control.camera_model;
@@ -286,10 +286,8 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 			std::cout << str_pretty(camera_model.matrix_frame()) << std::endl;
 			std::cout << "  View matrix:" << std::endl;
 			std::cout << str_pretty(camera_model.matrix_view()) << std::endl;
-
 		}
 	}
-
 }
 
 void display_gui_default()
