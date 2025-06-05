@@ -59,6 +59,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	int N_parabola = 100;		// number of points in the parabola
 
 	mesh_drawable ball;
+	mesh_drawable target;
 	mesh_drawable force_arrow;	// default position: from (0,0,0) to (1,0,0)
 	curve_drawable segments;
 
@@ -85,6 +86,9 @@ struct scene_structure : cgp::scene_inputs_generic {
 	float stop_threshold = 0.2;
 
 	float ball_radius = 1.0f;
+
+	float torus_max_radius = 2.2f;
+	float torus_min_radius = 0.2f;
 
 	// ****************************** //
 	// Functions

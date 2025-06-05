@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cgp/cgp.hpp"
-#include "tore.hpp"
+
 using namespace cgp;
 
 // ********************************************************************* //
