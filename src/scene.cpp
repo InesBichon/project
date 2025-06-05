@@ -18,11 +18,6 @@ cgp::vec3 scene_structure::reflect(cgp::vec3 v, cgp::vec3 n)
 
 void scene_structure::initialize()
 {
-	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
-	camera_control.set_rotation_axis_z();
-	camera_control.look_at({ 15.0f,6.0f,6.0f }, {0,0,0});
-	
-
 	// General information
 	display_info();
 
@@ -47,6 +42,17 @@ void scene_structure::initialize()
 	// terrain_mesh.material.phong.specular = 0.0f; // non-specular terrain material
 	terrain_mesh.shader = shader_custom;
 	terrain_mesh.material.color = {1, 1, 1};
+	
+	ball_position = {10.f, 10.f, 10.f};
+	ball_velocity = {0.f, 0.f, 0.f};
+
+	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
+	camera_control.translation_speed *= 10;
+	vec3 cam_pos = {-10.0f, 0.0f, 0.0f};
+	cam_pos.z = terrain.evaluate_terrain_height(cam_pos.x, cam_pos.y) + 2.;
+	camera_control.look_at(cam_pos, ball_position, {0,0,1});
+	// camera_control.set_rotation_axis_z();
+	// camera_control.look_at({ 15.0f,6.0f,6.0f }, {0,0,0});
 
 	spheres.resize(n_lights);
 	light_colors.resize(n_lights);
@@ -65,9 +71,6 @@ void scene_structure::initialize()
 	
 	// Initial position and speed of ball
 	// ******************************************* //
-
-	ball_position = {10.f, 10.f, 10.f};
-	ball_velocity = {0.f, 0.f, 0.f};
 
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
@@ -109,12 +112,6 @@ void scene_structure::initialize()
 	segments.shader = shader_parabola;
 	segments.initialize_data_on_gpu(positions, shader_parabola);
 
-	GLfloat vals[2];
-	glGetFloatv(GL_SMOOTH_LINE_WIDTH_GRANULARITY, vals);
-
-	std::cout << "min " << vals[0] << " max " << vals[1];
-
-
 	phase = 0;
 
 	cgp_warning::max_warning = 0;
@@ -142,9 +139,9 @@ void scene_structure::simulation_step(float dt)
 		// std::cout << "rebond\n\tinitial velocity " << ball_velocity << "\n\tnormal " << normal << "\n\t";
 		ball_velocity = 0.8 * reflect(ball_velocity, normal);
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
-		// std::cout << "velocity " << ball_velocity << "\n\n";
+		// std::cout << "velocity " << ball_velocity << "\n\tnorm " << cgp::norm(ball_velocity) << "\n";
 
-		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 5)		// we want the ball to slide down slopes reasonably fast, but not gain too much speed
+		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 3)		// we want the ball to slide down slopes reasonably fast, but not gain too much speed
 			ball_velocity = 1.3 * ball_velocity;
 	}
 	// std::cout << ball_velocity << "ball_velocity\n";
@@ -158,6 +155,15 @@ void scene_structure::display_frame()
 {
 	// Update time
 	timer.update();
+
+	if (last_frame_time == -1.0f)			// avoid a massive interval during the first frame
+		last_frame_time = timer.t;
+
+	float interval = timer.t - last_frame_time;
+	last_frame_time = timer.t;
+	
+	// move the camera
+	// move_cam(interval);
 
 	float freq = 0.5f;
 
@@ -284,6 +290,10 @@ void scene_structure::display_frame()
 		last_action_time = timer.t;
 		reset_force();
 	}
+
+	camera_control.camera_model.look_at(camera_control.camera_model.position_camera,
+		camera_control.camera_model.position_camera + camera_control.camera_model.front(),
+		{0, 0, 1});
 }
 
 

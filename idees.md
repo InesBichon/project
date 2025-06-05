@@ -9,3 +9,5 @@
 - gérer les pentes : ne ralentir la balle que si la pente est peu verticale
 - rebonds goofy
 - afficher dans la console une liste des commandes
+
+- même avec WASD, pas pratique du tout avec une caméra euler... il faudrait une caméra FPS !
