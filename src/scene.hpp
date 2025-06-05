@@ -49,8 +49,6 @@ struct scene_structure : cgp::scene_inputs_generic {
 	std::vector<mesh_drawable> spheres;
 	mesh_drawable sphere_light;
 
-	mesh_drawable ball_light;
-	mesh_drawable target_light;
 
 	std::vector<cgp::vec3> light_colors;
 	std::vector<cgp::vec3> light_pos;

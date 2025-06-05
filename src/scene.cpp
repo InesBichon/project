@@ -52,8 +52,8 @@ void scene_structure::initialize()
 	cam_pos.z = terrain.evaluate_terrain_height(cam_pos.x, cam_pos.y) + 2.;
 	camera_control.look_at(cam_pos, ball_position, {0,0,1});
 
-	spheres.resize(n_lights);
-	light_colors.resize(n_lights);
+	spheres.resize(n_lights+2);
+	light_colors.resize(n_lights+2);
 	light_pos.resize(n_lights);
 	light_speed.resize(n_lights);
 
@@ -75,8 +75,23 @@ void scene_structure::initialize()
 		spheres[i].material.color = light_colors[i];
 		// spheres[i].shader = shader_custom;
 	}
+
+	// Initial position of the ball light and of the target light
+	// Light of the ball
+	light_colors[n_lights] = {1.0f, 0, 0};
+	mesh sphere_mesh1 = mesh_primitive_sphere();
+	spheres[n_lights].initialize_data_on_gpu(sphere_mesh1);
+	spheres[n_lights].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
+	spheres[n_lights].material.color = light_colors[n_lights];
+
 	
-	// Initial position and speed of ball
+	light_colors[n_lights+1] = {1.0f, 1.0f, 1.0f};
+	mesh sphere_mesh2 = mesh_primitive_sphere();
+	spheres[n_lights+1].initialize_data_on_gpu(sphere_mesh2);
+	spheres[n_lights+1].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
+	spheres[n_lights+1].material.color = light_colors[n_lights+1];
+
+	// Initial position and speed of ball and 
 	// ******************************************* //
 
 	mesh ball_mesh = mesh_primitive_sphere();
@@ -188,8 +203,36 @@ void scene_structure::display_frame()
 	draw(skybox, environment);
 	glDepthMask(GL_TRUE);
 
-	// Set the light to the current position of the camera
+
+
+	ball.model.translation = ball_position;
+	// environment.background_color = gui;
+
+	// if (gui.display_frame)
+	// 	draw(global_frame, environment);
+
+	draw(terrain_mesh, environment);
+
+	
+	simulation_step(timer.scale * 0.1f);
+	// draw(tree, environment, N_trees);
+
+	ball.model.translation = ball_position;
+	draw(ball, environment);
+	float torus_x = -40.0f;
+	float torus_y = 40.0f;
+	vec3 target_position = {torus_x, torus_y, torus_max_radius + terrain.evaluate_terrain_height(torus_x, torus_y)};
+	rotation_transform R = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2);
+	target.model.rotation = R;
+	target.model.translation = target_position;
+	
+
+	draw(target, environment);
+
+
+		// Set the light to the current position of the camera
 	// environment.light = camera_control.camera_model.position();
+	// the first n_lights are regular lights, the last 2 follow the ball and the target
 	glUseProgram(shader_custom.id);
 
 	environment.uniform_generic.uniform_float["ambiant"] = 1.0f / n_lights;
@@ -198,7 +241,7 @@ void scene_structure::display_frame()
 	environment.uniform_generic.uniform_float["specular_exp"] = 100;
 	environment.uniform_generic.uniform_float["dl_max"] = 30;
 
-	environment.uniform_generic.uniform_int["light_n"] = n_lights;
+	environment.uniform_generic.uniform_int["light_n"] = n_lights + 2;
 
 	GLint pos_loc = shader_custom.query_uniform_location("light_positions");
 	GLint col_loc = shader_custom.query_uniform_location("light_colors");
@@ -223,30 +266,31 @@ void scene_structure::display_frame()
 		// spheres[i].material.phong.specular = 0;
 	}
 
-	ball.model.translation = ball_position;
-	// environment.background_color = gui;
 
-	// if (gui.display_frame)
-	// 	draw(global_frame, environment);
+	// Ball light (inside the ball)
+	cgp::vec3 color1 = light_colors[n_lights];
+	cgp::vec3 pos1 = ball_position;
 
-	draw(terrain_mesh, environment);
-		
+	glUniform3f(pos_loc + n_lights, pos1.x, pos1.y, pos1.z);
+	glUniform3f(col_loc + n_lights, color1.x, color1.y, color1.z);
+
+	spheres[n_lights].model.translation = pos1;
+
+	// Target light
+	cgp::vec3 color2 = light_colors[n_lights+1];
+	cgp::vec3 pos2 = target_position;
+	pos2.z = target_position.z + 5.0f;
+
+	glUniform3f(pos_loc + n_lights+1, pos2.x, pos2.y, pos2.z);
+	glUniform3f(col_loc + n_lights+1, color2.x, color2.y, color2.z);
+
+	spheres[n_lights+1].model.translation = pos2;
+
+
 	for (mesh_drawable& sphere: spheres)
 		draw(sphere, environment);
-	
-	simulation_step(timer.scale * 0.1f);
-	// draw(tree, environment, N_trees);
 
-	ball.model.translation = ball_position;
-	draw(ball, environment);
-	float torus_x = 15.0f;
-	float torus_y = 15.0f;
-	vec3 target_position = {torus_x, torus_y, torus_max_radius + terrain.evaluate_terrain_height(torus_x, torus_y)};
-	rotation_transform R = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2);
-	target.model.rotation = R;
-	target.model.translation = target_position;
-	
-	draw(target, environment);
+
 
 	if (gui.display_wireframe)
 		draw_wireframe(terrain_mesh, environment);
