@@ -59,7 +59,8 @@ void scene_structure::initialize()
 
 	for (int i = 0; i < n_lights; i++)
 	{
-		light_colors[i] = {i % 3 == 0, i % 3 == 1, i % 3 == 2};
+		// light_colors[i] = {i % 3 == 0, i % 3 == 1, i % 3 == 2};			// alternating red/green/blue lights
+		light_colors[i] = get_random_color();
 		// std::cout << light_colors[i] << '\n';
 		mesh sphere_mesh = mesh_primitive_sphere();
 		spheres[i].initialize_data_on_gpu(sphere_mesh);
@@ -75,7 +76,8 @@ void scene_structure::initialize()
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
 	ball.model.scaling = ball_radius;
-	ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/marbre.jpg");
+	// ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/tex.jpeg");
+	ball.material.color = {1,0,0};
 
 	mesh torus_mesh = mesh_primitive_torus(torus_max_radius, torus_min_radius);
 	target.initialize_data_on_gpu(torus_mesh);
@@ -180,7 +182,7 @@ void scene_structure::display_frame()
 	environment.uniform_generic.uniform_float["diffuse"] = 5.f / n_lights;
 	environment.uniform_generic.uniform_float["specular"] = 35.f / n_lights;
 	environment.uniform_generic.uniform_float["specular_exp"] = 100;
-	environment.uniform_generic.uniform_float["dl_max"] = 100;
+	environment.uniform_generic.uniform_float["dl_max"] = 50;
 
 	environment.uniform_generic.uniform_int["light_n"] = n_lights;
 

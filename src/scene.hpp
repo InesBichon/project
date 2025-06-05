@@ -44,7 +44,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	cgp::mesh_drawable terrain_mesh;
 	timer_basic timer;
 
-	int n_lights = 5;
+	int n_lights = 10;
 
 	std::vector<mesh_drawable> spheres;
 	mesh_drawable sphere_light;
@@ -70,7 +70,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	vec3 ball_force;
 	vec3 ball_weight;
 
-	const float force_coef = 4;		// multiply the force strength by this value
+	const float force_coef = 6;		// multiply the force strength by this value
 	const float gravity = 9.81 * 0.2f;
 
 	// 0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.

@@ -25,7 +25,9 @@ float Terrain::evaluate_terrain_height(float x, float y)
 	double height = 100;
 	double maxz = 500;
 
-	z += std::min(maxz, height * (pow(u - 0.5, power) + pow(v - 0.5, power)));
+	float min_car = min(cgp::numarray<float>{u, v, 1-u, 1-v});			// how close we are to a side
+
+	z += 1 / (min_car + 0.01);
 
 	// return z + noise;
 	return z;

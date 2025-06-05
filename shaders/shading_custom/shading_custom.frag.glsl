@@ -53,8 +53,8 @@ void main()
 		vec3 u_l = normalize(light_positions[i] - fragment.position);
 		vec3 u_r = reflect(-u_l, n);
 
-		// vec3 real_light_color = (1. - min(1., length(light_positions[i] - fragment.position) / dl_max)) * light_colors[i];
-		vec3 real_light_color = light_colors[i];
+		vec3 real_light_color = (1. - min(1., length(light_positions[i] - fragment.position) / dl_max)) * light_colors[i];
+		// vec3 real_light_color = light_colors[i];
 		
 		vec3 ambiant_color = ambiant * material.color * real_light_color;
 		vec3 diffuse_color = diffuse * max(0., dot(n, u_l)) * material.color * real_light_color;
