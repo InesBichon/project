@@ -53,14 +53,16 @@ struct scene_structure : cgp::scene_inputs_generic {
 	mesh_drawable target_light;
 
 	std::vector<cgp::vec3> light_colors;
+	std::vector<cgp::vec3> light_pos;
+	std::vector<cgp::vec3> light_speed;
 
 	cgp::skybox_drawable skybox;
 	// cgp::mesh_drawable tree;
 
-	// int N_trees = 100;
-	// std::vector<cgp::vec3> tree_position;
-
 	int N_parabola = 100;		// number of points in the parabola
+	int N_terrain_samples = 200;
+	int n_col = 60;				// number of bumps in the terrain
+	float terrain_length = 100;
 
 	mesh_drawable ball;
 	mesh_drawable target;
@@ -74,7 +76,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	vec3 ball_weight;
 
 	const float force_coef = 6;		// multiply the force strength by this value
-	const float gravity = 9.81 * 0.2f;
+	const float gravity = 9.81 * 0.4f;
 
 	// 0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.
 	int phase;
@@ -108,9 +110,10 @@ struct scene_structure : cgp::scene_inputs_generic {
 	void display_gui();   // The display of the GUI, also called within the animation loop
 
 	void reset_force();
-	void space_pressed();	// to be called when the user presses space
-	void reset_position();	// to be called when the user presses z, resets the position of the ball
-	void launch();			// launch the ball
+	void space_pressed();		// to be called when the user presses space
+	void reset_position();		// to be called when the user presses z, resets the position of the ball
+	void launch();				// launch the ball
+	void update_light_pos(float time_passed);	// update the light positions
 
 	// void move_cam(float time_passed);		// move the camera (with a given real time between the previous frame and the actual one)
 											// no longer necessary with camera_controller_first_person (we manually re-implemnted WASD)

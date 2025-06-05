@@ -1,6 +1,6 @@
 #version 330 core
 
-#define MAX_LIGHTS 15
+#define MAX_LIGHTS 25
 
 // Inputs coming from the vertex shader
 in struct fragment_data
@@ -50,6 +50,9 @@ void main()
 	
 	for (int i = 0; i < light_n; i++)
 	{
+		if (length(light_positions[i] - fragment.position) > dl_max)
+			continue;
+		
 		vec3 u_l = normalize(light_positions[i] - fragment.position);
 		vec3 u_r = reflect(-u_l, n);
 

@@ -8,12 +8,16 @@ cgp::vec3 get_random_color()
 	return {rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0), rand_uniform(0.3, 1.0)};
 }
 
+cgp::vec3 get_random_normalized()
+{
+	return cgp::normalize(cgp::vec3{cgp::rand_uniform(-1., 1.), cgp::rand_uniform(-1., 1.), cgp::rand_uniform(-1., 1.)});
+}
+
 cgp::vec3 scene_structure::reflect(cgp::vec3 v, cgp::vec3 n)
 {
 	cgp::vec3 new_v;
 	new_v = 2 * n * dot(n, v) - v;
 	return -new_v;
-
 }
 
 void scene_structure::initialize()
@@ -32,9 +36,6 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_parabola/shading_parabola.frag.glsl"
 	);
 
-	int N_terrain_samples = 100, n_col = 50;
-	float terrain_length = 200;
-
 	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
 
 	terrain_mesh.initialize_data_on_gpu(terrain.mesh);
@@ -43,28 +44,33 @@ void scene_structure::initialize()
 	terrain_mesh.shader = shader_custom;
 	terrain_mesh.material.color = {1, 1, 1};
 	
-	ball_position = {10.f, 10.f, 10.f};
-	ball_velocity = {0.f, 0.f, 0.f};
+	reset_position();			// reset the position & speed of the ball
 
 	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
 	camera_control.translation_speed *= 10;
 	vec3 cam_pos = {-10.0f, 0.0f, 0.0f};
 	cam_pos.z = terrain.evaluate_terrain_height(cam_pos.x, cam_pos.y) + 2.;
 	camera_control.look_at(cam_pos, ball_position, {0,0,1});
-	// camera_control.set_rotation_axis_z();
-	// camera_control.look_at({ 15.0f,6.0f,6.0f }, {0,0,0});
 
 	spheres.resize(n_lights);
 	light_colors.resize(n_lights);
+	light_pos.resize(n_lights);
+	light_speed.resize(n_lights);
 
 	for (int i = 0; i < n_lights; i++)
 	{
 		// light_colors[i] = {i % 3 == 0, i % 3 == 1, i % 3 == 2};			// alternating red/green/blue lights
 		light_colors[i] = get_random_color();
-		// std::cout << light_colors[i] << '\n';
+
+		// avoid spawning lights too close to the walls
+		light_pos[i] = {cgp::rand_uniform(-terrain_length / 2.2, terrain_length / 2.2), cgp::rand_uniform(-terrain_length / 2.2, terrain_length / 2.2), 0};
+		light_pos[i].z = terrain.evaluate_terrain_height(light_pos[i].x, light_pos[i].y) + 3.0f;
+
+		light_speed[i] = get_random_normalized();
+		
 		mesh sphere_mesh = mesh_primitive_sphere();
 		spheres[i].initialize_data_on_gpu(sphere_mesh);
-		spheres[i].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
+		spheres[i].model.scaling = 0.5f; // coordinates are multiplied by 0.2 in the shader
 		// spheres[i].texture = 
 		spheres[i].material.color = light_colors[i];
 		// spheres[i].shader = shader_custom;
@@ -133,7 +139,7 @@ void scene_structure::simulation_step(float dt)
 
 	ball_velocity = ball_velocity + dt * ball_force / m;
 	ball_position = ball_position + dt * ball_velocity;
-	
+
 	vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
 
 	if (ball_position.z - ball_radius <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
@@ -143,14 +149,20 @@ void scene_structure::simulation_step(float dt)
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 		// std::cout << "velocity " << ball_velocity << "\n\tnorm " << cgp::norm(ball_velocity) << "\n";
 
-		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 3)		// we want the ball to slide down slopes reasonably fast, but not gain too much speed
+		// we want the ball to slide down slopes reasonably fast, but not gain too much speed (otherwise, it falls with a constant & low speed)
+		// but also not enter infinite loops so we stop it after 5 seconds
+		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 3 && timer.t - last_action_time < 5)
 			ball_velocity = 1.3 * ball_velocity;
+
+		if (timer.t - last_action_time > 10 && norm(ball_velocity) < 0.5)
+		{
+			std::cout << "force stop\n";
+			ball_velocity = {0,0,0};
+			ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
+		}
 	}
 	// std::cout << ball_velocity << "ball_velocity\n";
 	// std::cout << norm(ball_velocity) << "ball_velocity_norm\n";
-
-
-
 }
 
 void scene_structure::display_frame()
@@ -164,8 +176,10 @@ void scene_structure::display_frame()
 	float interval = timer.t - last_frame_time;
 	last_frame_time = timer.t;
 	
-	// move the camera
+	// move the camera (no longer necessary with the first person camera structure)
 	// move_cam(interval);
+
+	update_light_pos(interval);
 
 	float freq = 0.5f;
 
@@ -182,7 +196,7 @@ void scene_structure::display_frame()
 	environment.uniform_generic.uniform_float["diffuse"] = 5.f / n_lights;
 	environment.uniform_generic.uniform_float["specular"] = 35.f / n_lights;
 	environment.uniform_generic.uniform_float["specular_exp"] = 100;
-	environment.uniform_generic.uniform_float["dl_max"] = 50;
+	environment.uniform_generic.uniform_float["dl_max"] = 30;
 
 	environment.uniform_generic.uniform_int["light_n"] = n_lights;
 
@@ -192,10 +206,11 @@ void scene_structure::display_frame()
 	for (int i = 0; i < n_lights; i++)
 	{
 		cgp::vec3 color = light_colors[i];
-		cgp::vec3 pos = {50 * cos(10. * i), 50 * sin(10. * i), 0};
-		pos.z = terrain.evaluate_terrain_height(pos.x, pos.y) + 3;
-		pos.x += 2 * cos(freq * timer.t * (i % 2 + 1));
-		pos.y += 2 * sin(freq * timer.t * (i % 2 + 1));
+		cgp::vec3 pos = light_pos[i];
+		// cgp::vec3 pos = {50 * cos(10. * i), 50 * sin(10. * i), 0};
+		// pos.z = terrain.evaluate_terrain_height(pos.x, pos.y) + 3;
+		// pos.x += 2 * cos(freq * timer.t * (i % 2 + 1));
+		// pos.y += 2 * sin(freq * timer.t * (i % 2 + 1));
 
 		glUniform3f(pos_loc + i, pos.x, pos.y, pos.z);
 		glUniform3f(col_loc + i, color.x, color.y, color.z);
@@ -356,6 +371,35 @@ void scene_structure::launch()
 	std::cout << "launch!!\n";
 	phase = 0;
 	ball_velocity = kick_direction * force_strength * force_coef;
+	timer.update();
+	last_action_time = timer.t;
+}
+
+void scene_structure::update_light_pos(float time_passed)
+{
+	const float speed = 3.;
+
+	// coefficients of actual speed, direction towards the ball, c3 = 1 - c1 - c2 random direction
+	// actually, it seems better to use a random direction without considering the ball
+	const float c1 = 0.95, c2 = 0.0;
+
+	for (int i = 0; i < n_lights; i++)
+	{
+		light_speed[i] = cgp::normalize(c1 * light_speed[i] + c2 * cgp::normalize(ball_position - light_pos[i]) + (1-c1-c2) * get_random_normalized());
+
+		light_pos[i] += time_passed * speed * light_speed[i];
+		
+		// if balls are getting to close to the walls, we reverse the corresponding speed coordinate
+		// no need to re-normalize the speed
+
+		if (light_pos[i].x > terrain.terrain_length / 2.2 && light_speed[i].x > 0 || light_pos[i].x < -terrain.terrain_length / 2.2 && light_speed[i].x < 0)
+			light_speed[i].x = -light_speed[i].x;
+
+		if (light_pos[i].y > terrain.terrain_length / 2.2 && light_speed[i].y > 0 || light_pos[i].y < -terrain.terrain_length / 2.2 && light_speed[i].y < 0)
+			light_speed[i].y = -light_speed[i].y;
+
+		light_pos[i].z = terrain.evaluate_terrain_height(light_pos[i].x, light_pos[i].y) + 3.;
+	}
 }
 
 void scene_structure::mouse_move_event()

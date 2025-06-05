@@ -94,9 +94,9 @@ void Terrain::create_terrain_mesh(int N, float terrain_length, int n_col)
 
 	for (int i = 0; i < n_col; i++)
 	{
-		p_i[i] = {(rand_uniform() - 0.5f) * terrain_length, (rand_uniform() - 0.5f) * terrain_length};
-		h_i[i] = rand_uniform(-5.0f, 10.f);
-		s_i[i] = rand_uniform(1.0f, 10.0f);
+		p_i[i] = {(rand_uniform() - 0.5f) * terrain_length * 0.9, (rand_uniform() - 0.5f) * terrain_length * 0.9};
+		h_i[i] = rand_uniform(3.0f, 10.f);
+		s_i[i] = rand_uniform(3.0f, 15.0f);
 	}
 	
 	update_positions();
