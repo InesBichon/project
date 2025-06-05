@@ -13,4 +13,15 @@
 
 - mettre une texture sur la balle n'était pas du tout convaincant parce qu'elle ne roulait pas
 
-à améliorer : terrains plus complexes ; niveaux de difficulté ; 
+à améliorer : terrains plus complexes ; niveaux de difficulté
+
+expliquer les contrôles dans le terminal
+avant de soumettre :
+
+- SUPPRIMER BUILD !!!
+
+- vérifier que ça compile bien !!
+
+remplacer les cgp::vec3 par des vec3
+vérifier aussi les terrain
+nettoyer les shaders, etc

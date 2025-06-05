@@ -25,6 +25,10 @@ void scene_structure::initialize()
 	// General information
 	display_info();
 
+	// change the random seed
+	srand(time(NULL));
+	cgp::rand_initialize_generator();
+
 	global_frame.initialize_data_on_gpu(mesh_primitive_frame());
 	
 	shader_custom.load(
@@ -104,7 +108,12 @@ void scene_structure::initialize()
 	target.initialize_data_on_gpu(torus_mesh);
 	target.material.color = {0., 0., 9.};
 	target.shader = shader_custom;
-	// target.model.rotation = 
+	
+	rotation_transform R = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2);
+	// now the torus is facing the y axis
+	target.model.rotation = R;
+
+	reset_target_position();
 
 	mesh force_arrow_mesh = mesh_primitive_arrow();
 	force_arrow.initialize_data_on_gpu(force_arrow_mesh);
@@ -139,6 +148,8 @@ void scene_structure::initialize()
 	phase = 0;
 
 	cgp_warning::max_warning = 0;
+	
+	std::cout << general_message;
 }
 
 void scene_structure::simulation_step(float dt)
@@ -154,6 +165,7 @@ void scene_structure::simulation_step(float dt)
 	ball_force = ball_weight;
 
 	ball_velocity = ball_velocity + dt * ball_force / m;
+	check_target_hit(ball_position, ball_position + dt * ball_velocity);
 	ball_position = ball_position + dt * ball_velocity;
 
 	vec3 normal = terrain.get_normal_from_position(terrain.N, terrain.terrain_length, ball_position.x, ball_position.y);
@@ -172,7 +184,7 @@ void scene_structure::simulation_step(float dt)
 
 		if (timer.t - last_action_time > 10 && norm(ball_velocity) < 0.5)
 		{
-			std::cout << "force stop\n";
+			// std::cout << "force stop\n";
 			ball_velocity = {0,0,0};
 			ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 		}
@@ -219,13 +231,6 @@ void scene_structure::display_frame()
 
 	ball.model.translation = ball_position;
 	draw(ball, environment);
-	float torus_x = -40.0f;
-	float torus_y = 40.0f;
-	vec3 target_position = {torus_x, torus_y, torus_max_radius + terrain.evaluate_terrain_height(torus_x, torus_y)};
-	rotation_transform R = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2);
-	target.model.rotation = R;
-	target.model.translation = target_position;
-	
 
 	draw(target, environment);
 
@@ -235,11 +240,13 @@ void scene_structure::display_frame()
 	// the first n_lights are regular lights, the last 2 follow the ball and the target
 	glUseProgram(shader_custom.id);
 
+	bool is_win_animation = last_win_time != -1.0f && timer.t - last_win_time <= 5;
+
 	environment.uniform_generic.uniform_float["ambiant"] = 1.0f / n_lights;
 	environment.uniform_generic.uniform_float["diffuse"] = 5.f / n_lights;
 	environment.uniform_generic.uniform_float["specular"] = 35.f / n_lights;
 	environment.uniform_generic.uniform_float["specular_exp"] = 100;
-	environment.uniform_generic.uniform_float["dl_max"] = 30;
+	environment.uniform_generic.uniform_float["dl_max"] = is_win_animation ? 100 : 30;
 
 	environment.uniform_generic.uniform_int["light_n"] = n_lights + 2;
 
@@ -247,23 +254,22 @@ void scene_structure::display_frame()
 	GLint col_loc = shader_custom.query_uniform_location("light_colors");
 	
 	for (int i = 0; i < n_lights; i++)
-	{
+	{		
 		cgp::vec3 color = light_colors[i];
+
+		// if we just won, the lights will be red/green/blue and switch color every 0.5 second; otherwise, use the default colors
+		if (is_win_animation)
+		{
+			int nb = (int)((timer.t - last_win_time) * 2);
+			color = {(i + nb) % 3 == 0, (i + nb) % 3 == 1, (i + nb) % 3 == 2};
+		}
+
 		cgp::vec3 pos = light_pos[i];
-		// cgp::vec3 pos = {50 * cos(10. * i), 50 * sin(10. * i), 0};
-		// pos.z = terrain.evaluate_terrain_height(pos.x, pos.y) + 3;
-		// pos.x += 2 * cos(freq * timer.t * (i % 2 + 1));
-		// pos.y += 2 * sin(freq * timer.t * (i % 2 + 1));
 
 		glUniform3f(pos_loc + i, pos.x, pos.y, pos.z);
 		glUniform3f(col_loc + i, color.x, color.y, color.z);
 
 		spheres[i].model.translation = pos;
-		// spheres[i].material.color = color * 0.8f;
-
-		// spheres[i].material.phong.ambient = 1;
-		// spheres[i].material.phong.diffuse = 0;
-		// spheres[i].material.phong.specular = 0;
 	}
 
 
@@ -278,8 +284,8 @@ void scene_structure::display_frame()
 
 	// Target light
 	cgp::vec3 color2 = light_colors[n_lights+1];
-	cgp::vec3 pos2 = target_position;
-	pos2.z = target_position.z + 5.0f;
+	cgp::vec3 pos2 = target.model.translation;
+	pos2.z = pos2.z + 5.0f;
 
 	glUniform3f(pos_loc + n_lights+1, pos2.x, pos2.y, pos2.z);
 	glUniform3f(col_loc + n_lights+1, color2.x, color2.y, color2.z);
@@ -341,7 +347,7 @@ void scene_structure::display_frame()
 
 	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_position.z <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 1.5 * ball_radius)
 	{
-		std::cout << "stop!!\n";
+		// std::cout << "stop!!\n";
 		phase++;
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 		ball_velocity = {0, 0, 0};
@@ -408,15 +414,32 @@ void scene_structure::space_pressed()
 
 void scene_structure::reset_position()
 {
-	timer.update();
-	ball_position = {0., 0., terrain.evaluate_terrain_height(0., 0.) + 15 * ball_radius};
+	float boundary = terrain_length * 0.4;
+	ball_position = {cgp::rand_uniform(-boundary, boundary), cgp::rand_uniform(-boundary, boundary), 0};
+	ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 15 * ball_radius;
 	ball_velocity = {0.f, 0.f, 0.f};
+
+	cgp::vec3 look_at_pos = ball_position;
+	look_at_pos.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 3 * ball_radius;
+
+	camera_control.look_at(camera_control.camera_model.position_camera, ball_position, {0,0,1});
 	phase = 0;
 }
 
+void scene_structure::reset_target_position()
+{
+	float boundary = terrain_length * 0.4;
+
+	vec3 pos = {cgp::rand_uniform(-boundary, boundary), cgp::rand_uniform(-boundary, boundary), 0};
+	pos.z = terrain.evaluate_terrain_height(pos.x, pos.y) + torus_max_radius;
+
+	target.model.translation = pos;
+}
+
+
 void scene_structure::launch()
 {
-	std::cout << "launch!!\n";
+	// std::cout << "launch!!\n";
 	phase = 0;
 	ball_velocity = kick_direction * force_strength * force_coef;
 	timer.update();
@@ -447,6 +470,31 @@ void scene_structure::update_light_pos(float time_passed)
 			light_speed[i].y = -light_speed[i].y;
 
 		light_pos[i].z = terrain.evaluate_terrain_height(light_pos[i].x, light_pos[i].y) + 3.;
+	}
+}
+
+void scene_structure::check_target_hit(vec3 old_pos, vec3 new_pos)
+{
+	// recall that the target is always facing the y axis (that is, a {0,1,0} vector is going through the hole)
+	
+	vec3 target_pos = target.model.translation;
+
+	// first condition: we need to go from one side of the y plane to another, ie. the sign of (pos.y - target.y) has changed
+	if ((new_pos.y - target_pos.y) * (old_pos.y - target_pos.y) >= 0)
+		return;
+
+	// then, we compute the position of the intersection point (pos.y == target.y)
+	vec3 intersection = old_pos + (new_pos - old_pos) * (target_pos.y - old_pos.y) / (new_pos.y - old_pos.y);
+
+	// and we just have to check if the distance from the intersection point to the center of the target is <= the target radius
+	if (cgp::norm(intersection - target_pos) <= torus_max_radius)
+	{
+		std::cout << "\nCongratulations!\n\n";
+		
+		reset_target_position();
+		
+		timer.update();
+		last_win_time = timer.t;
 	}
 }
 

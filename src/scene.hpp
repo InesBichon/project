@@ -12,6 +12,21 @@ using cgp::vec3;
 using cgp::numarray;
 using cgp::timer_basic;
 
+const std::string general_message =
+	"Welcome to La Boule Magique!!\n"
+	"\n"
+	"Your goal is to shoot the (red) ball into the (blue) target.\n"
+	"\n"
+	"Controls:\n"
+	"\t- Space: choose the kick direction and strength, then launch\n"
+	"\t- T: reset the ball position (use it if you end up stuck)\n"
+	"\t- W/S, A/D, R/F: move the camera position front/back, left/right and up/down\n"
+	"\t- left click + drag: move the camera view\n"
+	"\t- P: reset the target position (use it if the target is legitimately unreachable)\n"
+	"\n"
+	"Hint: if you do not know where the target is, seek a blue light!\n"
+	"If you're very unlucky, the target may not be reachable; then, use T to reset the ball position or P to reset the target position.\n\n";
+
 // Variables associated to the GUI
 struct gui_parameters {
 	bool display_frame = true;
@@ -58,7 +73,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	// cgp::mesh_drawable tree;
 
 	int N_parabola = 100;		// number of points in the parabola
-	int N_terrain_samples = 200;
+	int N_terrain_samples = 150;
 	int n_col = 60;				// number of bumps in the terrain
 	float terrain_length = 100;
 
@@ -84,6 +99,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 
 	float last_action_time = 0.0f;	// when choosing the force, this will be updated to the time of the last action (to avoid angle discontinuities)
 	float last_frame_time = -1.0f;
+	float last_win_time = -1.0f;
 
 	vec3 kick_direction;
 
@@ -109,9 +125,12 @@ struct scene_structure : cgp::scene_inputs_generic {
 
 	void reset_force();
 	void space_pressed();		// to be called when the user presses space
-	void reset_position();		// to be called when the user presses z, resets the position of the ball
+	void reset_position();		// to be called when the user presses T, resets the position of the ball
+	void reset_target_position();		// to be called at initialization & after each win
+
 	void launch();				// launch the ball
 	void update_light_pos(float time_passed);	// update the light positions
+	void check_target_hit(vec3 old_pos, vec3 new_pos);		// check whether the ball went through the target
 
 	// void move_cam(float time_passed);		// move the camera (with a given real time between the previous frame and the actual one)
 											// no longer necessary with camera_controller_first_person (we manually re-implemnted WASD)

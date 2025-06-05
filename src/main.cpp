@@ -278,6 +278,9 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 		if (key == GLFW_KEY_T && action == GLFW_PRESS)
 			scene.reset_position();
 
+		if (key == GLFW_KEY_P && action == GLFW_PRESS)
+			scene.reset_target_position();
+
 		// Press 'V' for camera frame/view matrix debug
 		if (key == GLFW_KEY_V && action == GLFW_PRESS && scene.inputs.keyboard.shift) {
 			auto const camera_model = scene.camera_control.camera_model;
