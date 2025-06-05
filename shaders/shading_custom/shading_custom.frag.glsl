@@ -66,6 +66,8 @@ void main()
 		final_color += ambiant_color + diffuse_color + specular_color;
 	}
 
+
+	
 	FragColor = vec4(final_color, 1.0);
 	//FragColor = vec4(fog_coef * fog_color + (1-fog_coef) * final_color, 1.0); 	// Note: the last alpha component is not used here
 }

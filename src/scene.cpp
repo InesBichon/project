@@ -85,7 +85,7 @@ void scene_structure::initialize()
 	spheres[n_lights].material.color = light_colors[n_lights];
 
 	
-	light_colors[n_lights+1] = {1.0f, 1.0f, 1.0f};
+	light_colors[n_lights+1] = {0, 0, 1.0f};
 	mesh sphere_mesh2 = mesh_primitive_sphere();
 	spheres[n_lights+1].initialize_data_on_gpu(sphere_mesh2);
 	spheres[n_lights+1].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
@@ -102,8 +102,8 @@ void scene_structure::initialize()
 
 	mesh torus_mesh = mesh_primitive_torus(torus_max_radius, torus_min_radius);
 	target.initialize_data_on_gpu(torus_mesh);
-	target.material.color = {9., 0., 0.};
-	
+	target.material.color = {0., 0., 9.};
+	target.shader = shader_custom;
 	// target.model.rotation = 
 
 	mesh force_arrow_mesh = mesh_primitive_arrow();
