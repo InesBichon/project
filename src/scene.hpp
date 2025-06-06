@@ -70,7 +70,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	cgp::skybox_drawable skybox;
 
 	int N_parabola = 100;			// number of points in the parabola
-	int N_terrain_samples = 150;	// number of points in the terrain mesh (along one coordinate)
+	int N_terrain_samples = 100;	// number of points in the terrain mesh (along one coordinate)
 	int n_bumps = 60;					// number of bumps in the terrain
 	float terrain_length = 100;		// length of the terrain
 

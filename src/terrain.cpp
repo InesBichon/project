@@ -19,9 +19,6 @@ float Terrain::evaluate_terrain_height(float x, float y)
 	}
 
 	// add walls on the side
-	double power = 4.;
-	double height = 100;
-	double maxz = 500;
 
 	float min_car = min(cgp::numarray<float>{u, v, 1-u, 1-v});		// minimal distance to a side
 
@@ -33,10 +30,8 @@ float Terrain::evaluate_terrain_height(float x, float y)
 void Terrain::update_positions()
 {
 	// compute the positions and connectivity
-	int N_tex = 10;
 
 	mesh.position.resize(N*N);
-	// mesh.uv.resize(N*N);
 
 	// Fill terrain geometry
 	for(int ku=0; ku<N; ++ku)

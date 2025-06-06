@@ -415,7 +415,7 @@ void scene_structure::reset_position()
 	cgp::vec3 look_at_pos = ball_position;
 	look_at_pos.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 3 * ball_radius;
 
-	camera_control.look_at(camera_control.camera_model.position_camera, ball_position, {0,0,1});
+	camera_control.look_at(camera_control.camera_model.position_camera, look_at_pos, {0,0,1});
 	phase = 0;
 }
 
@@ -464,10 +464,10 @@ void scene_structure::update_light_pos(float time_passed)
 		// if balls are getting to close to the walls, we reverse the corresponding speed coordinate
 		// no need to re-normalize the speed
 
-		if (light_pos[i].x > terrain.terrain_length / 2.2 && light_speed[i].x > 0 || light_pos[i].x < -terrain.terrain_length / 2.2 && light_speed[i].x < 0)
+		if ((light_pos[i].x > terrain.terrain_length / 2.2 && light_speed[i].x > 0) || (light_pos[i].x < -terrain.terrain_length / 2.2 && light_speed[i].x < 0))
 			light_speed[i].x = -light_speed[i].x;
 
-		if (light_pos[i].y > terrain.terrain_length / 2.2 && light_speed[i].y > 0 || light_pos[i].y < -terrain.terrain_length / 2.2 && light_speed[i].y < 0)
+		if ((light_pos[i].y > terrain.terrain_length / 2.2 && light_speed[i].y > 0) || (light_pos[i].y < -terrain.terrain_length / 2.2 && light_speed[i].y < 0))
 			light_speed[i].y = -light_speed[i].y;
 
 		light_pos[i].z = terrain.evaluate_terrain_height(light_pos[i].x, light_pos[i].y) + 3.;
