@@ -24,7 +24,7 @@ const std::string general_message =
 	"\t- left click + drag: move the camera view\n"
 	"\t- P: reset the target position (use it if the target is legitimately unreachable)\n"
 	"\n"
-	"Hint: if you do not know where the target is, seek a blue light!\n"
+	"Hint: if you do not know where the target/ball is, seek a blue/red light!\n"
 	"If you're very unlucky, the target may not be reachable; then, use T to reset the ball position or P to reset the target position.\n\n";
 
 // Variables associated to the GUI
@@ -68,17 +68,16 @@ struct scene_structure : cgp::scene_inputs_generic {
 	std::vector<cgp::vec3> light_speed;
 
 	cgp::skybox_drawable skybox;
-	// cgp::mesh_drawable tree;
 
-	int N_parabola = 100;		// number of points in the parabola
-	int N_terrain_samples = 150;
-	int n_col = 60;				// number of bumps in the terrain
-	float terrain_length = 100;
+	int N_parabola = 100;			// number of points in the parabola
+	int N_terrain_samples = 150;	// number of points in the terrain mesh (along one coordinate)
+	int n_bumps = 60;					// number of bumps in the terrain
+	float terrain_length = 100;		// length of the terrain
 
-	mesh_drawable ball;
-	mesh_drawable target;
-	mesh_drawable force_arrow;	// default position: from (0,0,0) to (1,0,0)
-	curve_drawable segments;
+	mesh_drawable ball;				// sphere ball mesh
+	mesh_drawable target;			// torus target
+	mesh_drawable force_arrow;		// default position: from (0,0,0) to (1,0,0)
+	curve_drawable segments;		// from (0,0,0) to (1,0,0) (positions modified in the vertex shader)
 
 	// Ball parameters
 	vec3 ball_position;
@@ -86,23 +85,23 @@ struct scene_structure : cgp::scene_inputs_generic {
 	vec3 ball_force;
 	vec3 ball_weight;
 
-	const float force_coef = 6;		// multiply the force strength by this value
-	const float gravity = 9.81 * 0.4f;
+	const float force_coef = 6;				// multiply the force strength (shown visually) by this value
+	const float gravity = 9.81 * 0.4f;		// gravity force (reduced)
 
-	// 0 when the ball is moving, 1 when choosing a horizontal angle for the kick, 2 ... vertical angle, 3 force.
+	// phase = 0 when the ball is moving (no user interaction), 1 when choosing a horizontal angle for the kick,
+	// 2 when choosing a vertical angle for the kick, 3 when choosing the strength.
 	int phase;
 	float angle_phi = 0.f;			// when choosing the force, horizontal angle
 	float angle_theta = Pi / 4;		// when choosing the force, vertical angle
 	float force_strength = 1.0f;	// when choosing the force, strength of the force
 
 	float last_action_time = 0.0f;	// when choosing the force, this will be updated to the time of the last action (to avoid angle discontinuities)
-	float last_frame_time = -1.0f;
-	float last_win_time = -1.0f;
+	float last_frame_time = -1.0f;	// updated every frame to know how much time has passed
+	float last_win_time = -1.0f;	// updated every time the ball goes through the target (to show the win animation)
 
-	vec3 kick_direction;
+	vec3 kick_direction;			// unit vector along the kick direction
 
-	// stop when the speed is lower than this quantity
-	float stop_threshold = 0.2;
+	float stop_threshold = 0.2;		// stop when the norm of the speed is lower than this mount
 
 	float ball_radius = 1.0f;
 
@@ -116,22 +115,21 @@ struct scene_structure : cgp::scene_inputs_generic {
 	void simulation_step(float dt);
 	cgp::vec3 reflect(cgp::vec3 v, cgp::vec3 n);
 
-
 	void initialize();    // Standard initialization to be called before the animation loop
 	void display_frame(); // The frame display to be called within the animation loop
 	void display_gui();   // The display of the GUI, also called within the animation loop
 
 	void reset_force();
-	void space_pressed();		// to be called when the user presses space
-	void reset_position();		// to be called when the user presses T, resets the position of the ball
+	void space_pressed();				// to be called when the user presses space
+	void reset_position();				// to be called when the user presses T, resets the position of the ball
 	void reset_target_position();		// to be called at initialization & after each win
 
-	void launch();				// launch the ball
-	void update_light_pos(float time_passed);	// update the light positions
+	void launch();						// launch the ball
+	void update_light_pos(float time_passed);				// update the light positions
 	void check_target_hit(vec3 old_pos, vec3 new_pos);		// check whether the ball went through the target
 
 	// void move_cam(float time_passed);		// move the camera (with a given real time between the previous frame and the actual one)
-											// no longer necessary with camera_controller_first_person (we manually re-implemnted WASD)
+												// no longer necessary with camera_controller_first_person (it re-implemented WASD)
 	void mouse_move_event();
 	void mouse_click_event();
 	void keyboard_event();

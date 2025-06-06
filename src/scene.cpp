@@ -30,7 +30,9 @@ void scene_structure::initialize()
 	cgp::rand_initialize_generator();
 
 	global_frame.initialize_data_on_gpu(mesh_primitive_frame());
-	
+
+	// load shaders
+
 	shader_custom.load(
 		project::path + "shaders/shading_custom/shading_custom.vert.glsl",
 		project::path + "shaders/shading_custom/shading_custom.frag.glsl");
@@ -40,21 +42,26 @@ void scene_structure::initialize()
 		project::path + "shaders/shading_parabola/shading_parabola.frag.glsl"
 	);
 
-	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_col);
+	// intialize terrain
+
+	terrain.create_terrain_mesh(N_terrain_samples, terrain_length, n_bumps);
 
 	terrain_mesh.initialize_data_on_gpu(terrain.mesh);
-	// terrain_mesh.material.color = {0.1f,0.1f,0.1f};
-	// terrain_mesh.material.phong.specular = 0.0f; // non-specular terrain material
 	terrain_mesh.shader = shader_custom;
 	terrain_mesh.material.color = {1, 1, 1};
-	
-	reset_position();			// reset the position & speed of the ball
+
+	// initialize the camera
 
 	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
 	camera_control.translation_speed *= 10;
-	vec3 cam_pos = {-10.0f, 0.0f, 0.0f};
-	cam_pos.z = terrain.evaluate_terrain_height(cam_pos.x, cam_pos.y) + 2.;
-	camera_control.look_at(cam_pos, ball_position, {0,0,1});
+	camera_control.camera_model.position_camera = {-10, -10, terrain.evaluate_terrain_height(-10,-10) + 10};
+
+	// initialize the position & speed of the ball (this also moves the camera to look at the ball)
+	
+	reset_position();
+
+	// initialize light meshes, positions, speeds and colors
+	// (n_lights moving lights, one inside the ball, one above the target)
 
 	spheres.resize(n_lights+2);
 	light_colors.resize(n_lights+2);
@@ -63,10 +70,9 @@ void scene_structure::initialize()
 
 	for (int i = 0; i < n_lights; i++)
 	{
-		// light_colors[i] = {i % 3 == 0, i % 3 == 1, i % 3 == 2};			// alternating red/green/blue lights
 		light_colors[i] = get_random_color();
 
-		// avoid spawning lights too close to the walls
+		// avoid spawning lights too close to the walls and spawn them slightly above ground
 		light_pos[i] = {cgp::rand_uniform(-terrain_length / 2.2, terrain_length / 2.2), cgp::rand_uniform(-terrain_length / 2.2, terrain_length / 2.2), 0};
 		light_pos[i].z = terrain.evaluate_terrain_height(light_pos[i].x, light_pos[i].y) + 3.0f;
 
@@ -75,45 +81,51 @@ void scene_structure::initialize()
 		mesh sphere_mesh = mesh_primitive_sphere();
 		spheres[i].initialize_data_on_gpu(sphere_mesh);
 		spheres[i].model.scaling = 0.5f;
-		// spheres[i].texture =				// it was a bit hard to implement rolling texture
 		spheres[i].material.color = light_colors[i];
 		// spheres[i].shader = shader_custom;
 	}
 
-	// Initial position of the ball light and of the target light
-	// Light of the ball
+	// initialize the position of the light inside the ball, and the light above the target
+	// (they're special lights so they aren't included in n_lights)
+
+	// red light of the ball
 	light_colors[n_lights] = {1.0f, 0, 0};
 	mesh sphere_mesh1 = mesh_primitive_sphere();
 	spheres[n_lights].initialize_data_on_gpu(sphere_mesh1);
-	spheres[n_lights].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
+	spheres[n_lights].model.scaling = 0.2f;
 	spheres[n_lights].material.color = light_colors[n_lights];
 
-	
+	// blue light above the target	
 	light_colors[n_lights+1] = {0, 0, 1.0f};
 	mesh sphere_mesh2 = mesh_primitive_sphere();
 	spheres[n_lights+1].initialize_data_on_gpu(sphere_mesh2);
 	spheres[n_lights+1].model.scaling = 0.2f; // coordinates are multiplied by 0.2 in the shader
 	spheres[n_lights+1].material.color = light_colors[n_lights+1];
 
-	// Initial position and speed of ball and 
-	// ******************************************* //
+	// initialize the ball mesh
 
 	mesh ball_mesh = mesh_primitive_sphere();
 	ball.initialize_data_on_gpu(ball_mesh);
 	ball.model.scaling = ball_radius;
 	// ball.texture.load_and_initialize_texture_2d_on_gpu(project::path + "assets/tex.jpeg");
+	// since the ball doesn't roll, the texture was fixed and didn't look nice
 	ball.material.color = {1,0,0};
+
+	// initialize the target mesh
 
 	mesh torus_mesh = mesh_primitive_torus(torus_max_radius, torus_min_radius);
 	target.initialize_data_on_gpu(torus_mesh);
 	target.material.color = {0., 0., 9.};
 	target.shader = shader_custom;
 	
+	// the torus is facing the y axis (ie. a (0,1,0) vector goes through the target hole)
 	rotation_transform R = rotation_transform::from_axis_angle({ 1,0,0 }, Pi / 2);
-	// now the torus is facing the y axis
 	target.model.rotation = R;
 
 	reset_target_position();
+
+	// initialize the force arrow mesh
+	// force arrow initially from (0,0,0) to (1,0,0)
 
 	mesh force_arrow_mesh = mesh_primitive_arrow();
 	force_arrow.initialize_data_on_gpu(force_arrow_mesh);
@@ -122,10 +134,9 @@ void scene_structure::initialize()
 	force_arrow.material.phong.diffuse = 0;
 	force_arrow.material.phong.specular = 0;
 
-	ball_position = {0, 0, 10};
 	reset_force();
 
-	// skybox code from the cgp examples github
+	// initialize the skybox (code from the cgp examples)
 
 	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox.jpg");
 	std::vector<image_structure> image_grid = image_split_grid(image_skybox_template, 4, 3);
@@ -136,6 +147,7 @@ void scene_structure::initialize()
 
 	// initialize the curve for the parabola: it's actually a chain of N segments going from (0,0,0) to (1,0,0) in a straight line
 	// then, the actual parabola will be computed in the vertex shader to avoid copying data to the GPU each frame
+	// we'll just need to pass the position, force & gravity as uniforms
 
 	std::vector<vec3> positions(N_parabola, {0., 0., 0.});
 	for (int i = 0; i < N_parabola; i++)
@@ -145,10 +157,13 @@ void scene_structure::initialize()
 	segments.shader = shader_parabola;
 	segments.initialize_data_on_gpu(positions, shader_parabola);
 
+	// the ball starts in the air, so it's moving (phase 0)
 	phase = 0;
 
+	// remove the uncaught uniforms warning
 	cgp_warning::max_warning = 0;
 	
+	// helper message
 	std::cout << general_message;
 }
 
@@ -157,8 +172,8 @@ void scene_structure::simulation_step(float dt)
 	if (phase > 0)
 		return;
 
-	float m = 0.01f;       // ball mass
-	vec3 g = { 0,0,-gravity}; // gravity
+	float m = 0.01f;       		// ball mass
+	vec3 g = { 0,0,-gravity}; 	// gravity
 
 
 	ball_weight = m * g;
@@ -172,25 +187,23 @@ void scene_structure::simulation_step(float dt)
 
 	if (ball_position.z - ball_radius <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) && dot(ball_velocity, normal) < 0)
 	{
-		// std::cout << "rebond\n\tinitial velocity " << ball_velocity << "\n\tnormal " << normal << "\n\t";
+		// we went under the ground: reflect towards the normal (and reduce the speed norm to lose energy)
 		ball_velocity = 0.8 * reflect(ball_velocity, normal);
+		// stay above the ground
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
-		// std::cout << "velocity " << ball_velocity << "\n\tnorm " << cgp::norm(ball_velocity) << "\n";
 
 		// we want the ball to slide down slopes reasonably fast, but not gain too much speed (otherwise, it falls with a constant & low speed)
 		// but also not enter infinite loops so we stop it after 5 seconds
 		if (normal.z < 0.995 && cgp::norm(ball_velocity) < 3 && timer.t - last_action_time < 5)
 			ball_velocity = 1.3 * ball_velocity;
 
+		// if 10 seconds have passed, we stop once it's slow enough (otherwise, it can get boring)
 		if (timer.t - last_action_time > 10 && norm(ball_velocity) < 0.5)
 		{
-			// std::cout << "force stop\n";
 			ball_velocity = {0,0,0};
 			ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 		}
 	}
-	// std::cout << ball_velocity << "ball_velocity\n";
-	// std::cout << norm(ball_velocity) << "ball_velocity_norm\n";
 }
 
 void scene_structure::display_frame()
@@ -208,37 +221,27 @@ void scene_structure::display_frame()
 	// move_cam(interval);
 
 	update_light_pos(interval);
-
-	float freq = 0.5f;
+	simulation_step(timer.scale * 0.1f);
 
 	// draw the skybox before everything else
 	glDepthMask(GL_FALSE);
 	draw(skybox, environment);
 	glDepthMask(GL_TRUE);
 
-
-
-	ball.model.translation = ball_position;
-
 	// if (gui.display_frame)
 	// 	draw(global_frame, environment);
 
 	draw(terrain_mesh, environment);
-
-	
-	simulation_step(timer.scale * 0.1f);
-	// draw(tree, environment, N_trees);
 
 	ball.model.translation = ball_position;
 	draw(ball, environment);
 
 	draw(target, environment);
 
-	// Set the light to the current position of the camera
-	// environment.light = camera_control.camera_model.position();
 	// the first n_lights are regular lights, the last 2 follow the ball and the target
 	glUseProgram(shader_custom.id);
 
+	// if the ball went through the target in the last 5 seconds, we want to display a pretty win animation
 	bool is_win_animation = last_win_time != -1.0f && timer.t - last_win_time <= 5;
 
 	environment.uniform_generic.uniform_float["ambiant"] = 1.0f / n_lights;
@@ -249,6 +252,7 @@ void scene_structure::display_frame()
 
 	environment.uniform_generic.uniform_int["light_n"] = n_lights + 2;
 
+	// we need to use a bit of raw OpenGL to access uniform arrays in the shaders
 	GLint pos_loc = shader_custom.query_uniform_location("light_positions");
 	GLint col_loc = shader_custom.query_uniform_location("light_colors");
 
@@ -270,7 +274,6 @@ void scene_structure::display_frame()
 
 		spheres[i].model.translation = pos;
 	}
-
 
 	// Ball light (inside the ball)
 	cgp::vec3 color1 = light_colors[n_lights];
@@ -313,6 +316,7 @@ void scene_structure::display_frame()
 		angle_theta = Pi / 4 + Pi / 12 * sin(2 * Pi * (timer.t - last_action_time) * theta_freq);		// smooth angle between pi/6 and pi/3
 	}
 
+	// third phase: choose the force strength
 	else if (phase == 3)
 	{
 		const float force_freq = 0.5;
@@ -320,7 +324,7 @@ void scene_structure::display_frame()
 		force_strength = 1.0 + 0.7 * sin(2 * Pi * (timer.t - last_action_time) * force_freq);			// smooth force between 0.3 and 1.7
 	}
 
-	// draw the force arrow and the parabola if necessary
+	// draw the force arrow and the parabola if the ball isn't currently in its movement phase
 	if (phase > 0)
 	{
 		cgp::rotation_transform rot = cgp::rotation_axis_angle({0, 0, 1}, angle_phi) * cgp::rotation_axis_angle({0, 1, 0}, -angle_theta);
@@ -333,8 +337,9 @@ void scene_structure::display_frame()
 
 		glUseProgram(shader_parabola.id);
 		// glLineWidth((GLfloat) 2.);
+		// apparently, glLineWidth isn't supported anymore on modern devices... shame
 
-		// draw the parabola
+		// give the vertex shader the necessary information to compute the shape of the parabola
 		environment.uniform_generic.uniform_vec3["ball_position"] = ball_position;
 		environment.uniform_generic.uniform_vec3["kickforce"] = kick_direction * force_strength * force_coef;
 		environment.uniform_generic.uniform_float["gravity"] = gravity;
@@ -344,9 +349,9 @@ void scene_structure::display_frame()
 		draw(segments, environment);
 	}
 
+	// stop the ball if it's going slow & near the ground (and in the movement phase)
 	if (phase == 0 && cgp::norm(ball_velocity) < stop_threshold && ball_position.z <= terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 1.5 * ball_radius)
 	{
-		// std::cout << "stop!!\n";
 		phase++;
 		ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + ball_radius;
 		ball_velocity = {0, 0, 0};
@@ -373,27 +378,13 @@ void scene_structure::display_frame()
 
 void scene_structure::display_gui()
 {
+	// we do not need gui parameters
 	return;
-	ImGui::Checkbox("Frame", &gui.display_frame);
-	ImGui::Checkbox("Wireframe", &gui.display_wireframe);
-
-	bool update = false;
-	update |= ImGui::SliderFloat("Persistance", &terrain.persistency, 0.1f, 0.6f);
-	update |= ImGui::SliderFloat("Frequency gain", &terrain.frequency_gain, 1.5f, 2.5f);
-	update |= ImGui::SliderInt("Octave", &terrain.octave, 1, 8);
-	update |= ImGui::SliderFloat("Height", &terrain.height, 0.f, 10.f);
-
-	if (update)// if any slider has been changed - then update the terrain
-	{
-		terrain.update_positions();	// Update step: Allows to update a mesh_drawable without creating a new one
-		terrain_mesh.vbo_position.update(terrain.mesh.position);
-		terrain_mesh.vbo_normal.update(terrain.mesh.normal);
-		terrain_mesh.vbo_color.update(terrain.mesh.color);
-	}
 }
 
 void scene_structure::reset_force()
 {
+	// reset the force to default
 	angle_phi = 0.0f;
 	angle_theta = Pi / 4;
 	force_strength = 1.0f;
@@ -401,6 +392,7 @@ void scene_structure::reset_force()
 
 void scene_structure::space_pressed()
 {
+	// increase the phase (do nothing if phase = 0)
 	if (phase == 1 || phase == 2)
 	{
 		timer.update();
@@ -413,6 +405,8 @@ void scene_structure::space_pressed()
 
 void scene_structure::reset_position()
 {
+	// reset the ball position to a random point (above the ground)
+
 	float boundary = terrain_length * 0.4;
 	ball_position = {cgp::rand_uniform(-boundary, boundary), cgp::rand_uniform(-boundary, boundary), 0};
 	ball_position.z = terrain.evaluate_terrain_height(ball_position.x, ball_position.y) + 15 * ball_radius;
@@ -427,6 +421,7 @@ void scene_structure::reset_position()
 
 void scene_structure::reset_target_position()
 {
+	// reset the target position to a random point
 	float boundary = terrain_length * 0.4;
 
 	vec3 pos = {cgp::rand_uniform(-boundary, boundary), cgp::rand_uniform(-boundary, boundary), 0};
@@ -438,7 +433,8 @@ void scene_structure::reset_target_position()
 
 void scene_structure::launch()
 {
-	// std::cout << "launch!!\n";
+	// launch the ball after the force has been chosen
+
 	phase = 0;
 	ball_velocity = kick_direction * force_strength * force_coef;
 	timer.update();
@@ -447,10 +443,16 @@ void scene_structure::launch()
 
 void scene_structure::update_light_pos(float time_passed)
 {
-	const float speed = 3.;
+	// update the lights positions & speeds
+	// every frame, we randomly change every speed by a small vector to make them move smoothly but also randomly
+	// we always assume the speeds to be normalized
+
+	const float speed = 3.;			// actual speed of the ball
 
 	// coefficients of actual speed, direction towards the ball, c3 = 1 - c1 - c2 random direction
 	// actually, it seems better to use a random direction without considering the ball
+	// (at first, we wanted the lights to go towards the ball in a menacing way)
+
 	const float c1 = 0.95, c2 = 0.0;
 
 	for (int i = 0; i < n_lights; i++)
@@ -474,6 +476,8 @@ void scene_structure::update_light_pos(float time_passed)
 
 void scene_structure::check_target_hit(vec3 old_pos, vec3 new_pos)
 {
+	// check whether the target was hit (if it's the case, update last_win_time and display a message)
+
 	// recall that the target is always facing the y axis (that is, a {0,1,0} vector is going through the hole)
 	
 	vec3 target_pos = target.model.translation;

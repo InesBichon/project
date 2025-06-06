@@ -4,37 +4,35 @@
 
 using namespace cgp;
 
-// Evaluate 3D position of the terrain for any (x,y)
 float Terrain::evaluate_terrain_height(float x, float y)
 {
+	// Evaluate z position of the terrain for any (x,y)
+	
 	float u = x / terrain_length + 0.5f, v = y / terrain_length + 0.5f;
 
 	float z = 0.0f;
 
-	for (int i = 0; i < n_col; i++)
+	for (int i = 0; i < n_bumps; i++)
 	{
 		float s = norm(vec2(x, y) - p_i[i]) / s_i[i];
 		z += h_i[i] * std::exp(-s*s);
 	}
 
-	// Compute the Perlin noise
-	// float noise = height * noise_perlin({u, v}, octave, persistency, frequency_gain);
-
-	// add downwards walls
+	// add walls on the side
 	double power = 4.;
 	double height = 100;
 	double maxz = 500;
 
-	float min_car = min(cgp::numarray<float>{u, v, 1-u, 1-v});			// how close we are to a side
+	float min_car = min(cgp::numarray<float>{u, v, 1-u, 1-v});		// minimal distance to a side
 
-	z += 1 / (min_car + 0.01);
+	z += 1 / (min_car + 0.01);			// very high near the side, low in the middle
 
-	// return z + noise;
 	return z;
 }
 
 void Terrain::update_positions()
 {
+	// compute the positions and connectivity
 	int N_tex = 10;
 
 	mesh.position.resize(N*N);
@@ -82,17 +80,17 @@ void Terrain::update_positions()
 	mesh.fill_empty_field(); 
 }
 
-void Terrain::create_terrain_mesh(int N, float terrain_length, int n_col)
+void Terrain::create_terrain_mesh(int N, float terrain_length, int n_bumps)
 {
 	this->N = N;
-	this->n_col = n_col;
+	this->n_bumps = n_bumps;
 	this->terrain_length = terrain_length;
 
-	p_i.resize(n_col);
-	h_i.resize(n_col);
-	s_i.resize(n_col);
+	p_i.resize(n_bumps);
+	h_i.resize(n_bumps);
+	s_i.resize(n_bumps);
 
-	for (int i = 0; i < n_col; i++)
+	for (int i = 0; i < n_bumps; i++)
 	{
 		p_i[i] = {(rand_uniform() - 0.5f) * terrain_length * 0.9, (rand_uniform() - 0.5f) * terrain_length * 0.9};
 		h_i[i] = rand_uniform(3.0f, 10.f);
@@ -104,6 +102,7 @@ void Terrain::create_terrain_mesh(int N, float terrain_length, int n_col)
 
 vec3 Terrain::get_normal_from_position(int N, float length, float x, float y)
 {
+	// compute the normal vector
 	int triangle_position;
 	float u0 = (x / length + 0.5) * (N-1);
 	float v0 = (y / length + 0.5) * (N-1);
@@ -121,34 +120,9 @@ vec3 Terrain::get_normal_from_position(int N, float length, float x, float y)
 	// if we're outside the terrain, return a vertical normal
 	if (triangle_position < 0 || triangle_position >= mesh.normal.size())
 	{
-		std::cout << "outside\n";
+		// std::cout << "outside\n";
 		return {0, 0, 1};
 	}
 	
 	return mesh.normal[triangle_position];
-}
-
-
-std::vector<cgp::vec3> Terrain::generate_positions_on_terrain(int n_trees)
-{
-	std::vector<cgp::vec3> ans(n_trees);
-	float min_dist = 1.5f;
-
-	for (int i = 0; i < n_trees; i++)
-	{
-		float x, y, dist;
-		do
-		{
-			dist = terrain_length;
-			x = (rand_uniform() - 0.5f) * terrain_length;
-			y = (rand_uniform() - 0.5f) * terrain_length;
-			for (int j = 0; j < i; j++)
-				dist = std::min(dist, norm(vec2(x, y) - vec2(ans[j].x, ans[j].y)));
-		}
-		while (dist < min_dist);
-		
-		ans[i] = {x, y, evaluate_terrain_height(x, y)};
-	}
-
-	return ans;
 }
