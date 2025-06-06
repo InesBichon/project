@@ -127,7 +127,7 @@ void scene_structure::initialize()
 
 	// skybox code from the cgp examples github
 
-	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox4.jpg");
+	image_structure image_skybox_template = image_load_file(project::path+"assets/skybox.jpg");
 	std::vector<image_structure> image_grid = image_split_grid(image_skybox_template, 4, 3);
 
 	skybox.initialize_data_on_gpu();
@@ -234,8 +234,7 @@ void scene_structure::display_frame()
 
 	draw(target, environment);
 
-
-		// Set the light to the current position of the camera
+	// Set the light to the current position of the camera
 	// environment.light = camera_control.camera_model.position();
 	// the first n_lights are regular lights, the last 2 follow the ball and the target
 	glUseProgram(shader_custom.id);
@@ -252,7 +251,7 @@ void scene_structure::display_frame()
 
 	GLint pos_loc = shader_custom.query_uniform_location("light_positions");
 	GLint col_loc = shader_custom.query_uniform_location("light_colors");
-	
+
 	for (int i = 0; i < n_lights; i++)
 	{		
 		cgp::vec3 color = light_colors[i];

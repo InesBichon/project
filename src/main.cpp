@@ -112,7 +112,8 @@ void animation_loop()
 
 	float const time_interval = fps_record.update();
 	if (fps_record.event) {
-		std::string const title = "CGP Display - " + str(fps_record.fps) + " fps";
+		// std::string const title = "CGP Display - " + str(fps_record.fps) + " fps";
+		std::string const title = "La boule magique";
 		glfwSetWindowTitle(scene.window.glfw_window, title.c_str());
 	}
 
@@ -159,9 +160,6 @@ void initialize_default_shaders()
 	// Set standard uniform color for curve/segment_drawable
 	curve_drawable::default_shader.load(default_path_shaders +"single_color/single_color.vert.glsl", default_path_shaders+"single_color/single_color.frag.glsl");
 }
-
-
-
 
 
 //Callback functions

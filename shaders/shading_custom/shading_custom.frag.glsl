@@ -5,11 +5,10 @@
 // Inputs coming from the vertex shader
 in struct fragment_data
 {
-    vec3 position; // position in the world space
-    vec3 normal;   // normal in the world space
-    vec3 color;    // current color on the fragment
-    vec2 uv;       // current uv-texture on the fragment
-
+    vec3 position;
+    vec3 normal;
+    vec3 color;			// we actually do not use vertex colors
+	vec2 uv;			// we actually do not use textures
 } fragment;
 
 // Output of the fragment shader - output color
@@ -24,17 +23,17 @@ struct material_structure
 };
 uniform material_structure material;
 
-// Ambiant uniform controled from the GUI
+// Lighting uniforms controlled from the C++ code
 uniform float ambiant;
 uniform float diffuse;
 uniform float specular;
 uniform float specular_exp;
-uniform float dl_max;
+uniform float dl_max;			// maximum distance from which a light should be visible
 
-uniform int light_n;
+uniform int light_n;			// number of lights (should be lower than MAX_LIGHTS)
 
-uniform vec3 light_colors[MAX_LIGHTS];
-uniform vec3 light_positions[MAX_LIGHTS];
+uniform vec3 light_colors[MAX_LIGHTS];				// colors of the lights
+uniform vec3 light_positions[MAX_LIGHTS];			// positions of the lights
 
 
 void main()
@@ -50,14 +49,14 @@ void main()
 	
 	for (int i = 0; i < light_n; i++)
 	{
-		if (length(light_positions[i] - fragment.position) > dl_max)
+		if (length(light_positions[i] - fragment.position) > dl_max)				// if the light is too far away, we skip the computations
 			continue;
 		
 		vec3 u_l = normalize(light_positions[i] - fragment.position);
 		vec3 u_r = reflect(-u_l, n);
 
+		// real light color is dimmed relatively to the distance to the fragment
 		vec3 real_light_color = (1. - min(1., length(light_positions[i] - fragment.position) / dl_max)) * light_colors[i];
-		// vec3 real_light_color = light_colors[i];
 		
 		vec3 ambiant_color = ambiant * material.color * real_light_color;
 		vec3 diffuse_color = diffuse * max(0., dot(n, u_l)) * material.color * real_light_color;
@@ -65,9 +64,6 @@ void main()
 
 		final_color += ambiant_color + diffuse_color + specular_color;
 	}
-
-
 	
 	FragColor = vec4(final_color, 1.0);
-	//FragColor = vec4(fog_coef * fog_color + (1-fog_coef) * final_color, 1.0); 	// Note: the last alpha component is not used here
 }

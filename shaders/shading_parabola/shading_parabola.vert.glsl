@@ -1,33 +1,28 @@
 #version 330 core
 
-// Vertex shader - this code is executed for every vertex of the shape
-
 // Inputs coming from VBOs
-layout (location = 0) in vec3 vertex_position; // vertex position in local space (x,y,z)
+layout (location = 0) in vec3 vertex_position;
 
 // Uniform variables expected to receive from the C++ program
-uniform mat4 model; // Model affine transform matrix associated to the current shape
-uniform mat4 view;  // View matrix (rigid transform) of the camera
-uniform mat4 projection; // Projection (perspective or orthogonal) matrix of the camera
+uniform mat4 view; 
+uniform mat4 projection;
 
 uniform vec3 ball_position;	// initial position of the ball
 uniform vec3 kickforce;		// initial speed of the ball
-uniform float gravity;		// force of gravity
+uniform float gravity;		// force of gravity (assumed >0)
 
-#define maxt 10
+#define maxt 7				// show the parabola corresponding to the first 7 seconds of the movement (including the part below the ground)
 
-// assume the input is (t, 0, 0) with 0 <= t <= 1
-// returns the corresponding (x, y, z) corresponding to the position of the ball after a time t*maxt
+// assume the input vertex has coords (t, 0, 0) with 0 <= t <= 1
+// return (x, y, z) corresponding to the position of the ball after a time t*maxt from the given starting point & speed
 
 void main()
 {
-	// The position of the vertex in the world space
 	float t = vertex_position.x * maxt;
-	vec4 position = vec4(ball_position + 0.5 * vec3(0, 0, -gravity) * t * t + kickforce * t, 1.0);
+	// z = p_0 + v_0 * t - 1/2 g t*t
+	vec4 position = vec4(ball_position + kickforce * t + 0.5 * vec3(0, 0, -gravity) * t * t, 1.0);
 
-	// The projected position of the vertex in the normalized device coordinates:
 	vec4 position_projected = projection * view * position;
 
-	// gl_Position is a built-in variable which is the expected output of the vertex shader
-	gl_Position = position_projected; // gl_Position is the projected vertex position (in normalized device coordinates)
+	gl_Position = position_projected;
 }
